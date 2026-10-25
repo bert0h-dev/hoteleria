@@ -18,12 +18,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/auth-context';
@@ -46,7 +46,8 @@ import { RoomStatusBadge } from './room-status-badge';
 
 const SELF = 'self';
 
-export function RoomSheet({
+/** Detalle de la habitación en un diálogo centrado. */
+export function RoomDetailsDialog({
   room,
   onOpenChange,
   onEdit,
@@ -56,11 +57,11 @@ export function RoomSheet({
   onEdit?: (room: Room) => void;
 }) {
   return (
-    <Sheet open={!!room} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-md">
+    <Dialog open={!!room} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[92svh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
         {room && <RoomDetails key={room.id} room={room} onEdit={onEdit} />}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -76,7 +77,7 @@ function RoomDetails({
 
   return (
     <>
-      <SheetHeader className="relative overflow-hidden border-b p-6">
+      <DialogHeader className="relative shrink-0 overflow-hidden border-b p-6">
         <div
           className={cn(
             'absolute -top-16 -right-16 size-48 rounded-full opacity-20 blur-3xl',
@@ -88,53 +89,59 @@ function RoomDetails({
             {room.number}
           </div>
           <div className="min-w-0 flex-1 space-y-1.5">
-            <SheetTitle className="text-lg">
+            <DialogTitle className="text-lg">
               Habitación {room.number}
-            </SheetTitle>
-            <SheetDescription className="flex items-center gap-2">
+            </DialogTitle>
+            <DialogDescription className="flex items-center gap-2">
               {room.roomType.name} · {formatMoney(room.roomType.nightlyRate)} /
               noche
-            </SheetDescription>
+            </DialogDescription>
             <RoomStatusBadge status={room.status} />
           </div>
         </div>
-      </SheetHeader>
+      </DialogHeader>
 
-      <div className="space-y-6 p-6">
-        <dl className="grid grid-cols-2 gap-3 text-sm">
-          <Info icon={Layers} label="Piso" value={String(room.floor)} />
-          <Info
-            icon={Sparkles}
-            label="Última limpieza"
-            value={
-              room.lastCleanedBy && room.lastCleanedAt
-                ? `${room.lastCleanedBy.name} · ${formatRelative(room.lastCleanedAt)}`
-                : 'Sin registro'
-            }
-          />
-          {room.notes && (
-            <div className="col-span-2">
-              <Info icon={StickyNote} label="Notas" value={room.notes} />
-            </div>
+      {/* Escritorio: datos y estado a la izquierda, historial a la derecha.
+          Celular: una sola columna con scroll. */}
+      <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-2 md:grid-rows-1 md:overflow-hidden">
+        <div className="min-h-0 space-y-6 p-6 md:overflow-y-auto">
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <Info icon={Layers} label="Piso" value={String(room.floor)} />
+            <Info
+              icon={Sparkles}
+              label="Última limpieza"
+              value={
+                room.lastCleanedBy && room.lastCleanedAt
+                  ? `${room.lastCleanedBy.name} · ${formatRelative(room.lastCleanedAt)}`
+                  : 'Sin registro'
+              }
+            />
+            {room.notes && (
+              <div className="col-span-2">
+                <Info icon={StickyNote} label="Notas" value={room.notes} />
+              </div>
+            )}
+          </dl>
+
+          {room.isActive && user && (
+            <StatusChanger key={room.status} room={room} role={user.role} />
           )}
-        </dl>
 
-        {room.isActive && user && (
-          <StatusChanger key={room.status} room={room} role={user.role} />
-        )}
+          {hasRole('ADMIN') && onEdit && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => onEdit(room)}
+            >
+              <Pencil />
+              Editar habitación
+            </Button>
+          )}
+        </div>
 
-        {hasRole('ADMIN') && onEdit && (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => onEdit(room)}
-          >
-            <Pencil />
-            Editar habitación
-          </Button>
-        )}
-
-        <History roomId={room.id} />
+        <div className="min-h-0 border-t bg-muted/20 p-6 md:overflow-y-auto md:border-t-0 md:border-l">
+          <History roomId={room.id} />
+        </div>
       </div>
     </>
   );

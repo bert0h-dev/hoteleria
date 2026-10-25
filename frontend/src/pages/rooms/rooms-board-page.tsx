@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth/auth-context';
 import { RoomCard } from '@/features/rooms/components/room-card';
 import { RoomFormDialog } from '@/features/rooms/components/room-form-dialog';
-import { RoomSheet } from '@/features/rooms/components/room-sheet';
+import { RoomDetailsDialog } from '@/features/rooms/components/room-details-dialog';
 import { ROOM_STATUS, ROOM_STATUSES } from '@/features/rooms/room-status';
 import {
   useRoomSummary,
@@ -249,7 +249,7 @@ export function RoomsBoardPage() {
         ))}
       </div>
 
-      <RoomSheet
+      <RoomDetailsDialog
         room={selected}
         onOpenChange={(open) => !open && setSelectedId(null)}
         onEdit={(room) => {
