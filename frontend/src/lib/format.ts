@@ -30,3 +30,15 @@ export function formatDateTime(iso: string): string {
     timeStyle: 'short',
   });
 }
+
+const currencyCents = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Con centavos, para desgloses de impuestos: 840.34 → "$840.34". */
+export function formatMoneyCents(amount: number): string {
+  return currencyCents.format(amount);
+}

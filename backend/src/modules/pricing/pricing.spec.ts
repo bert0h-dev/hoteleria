@@ -1,8 +1,11 @@
 import {
   calculateDayCheckOut,
+  calculateExtraGuests,
   calculateHourlyStay,
   calculateNightlyStay,
   calculateRates,
+  calculateTaxBreakdown,
+  hoursUntilDayRate,
   type PricingSettings,
 } from './pricing.js';
 
@@ -12,6 +15,7 @@ const defaults: PricingSettings = {
   dayRatePercent: 120,
   dayDurationHours: 24,
   weekRatePercent: 600,
+  capHourlyAtDayRate: true,
 };
 
 describe('calculateRates', () => {
@@ -48,6 +52,7 @@ describe('calculateHourlyStay', () => {
       billedHours: 3,
       rate: 150,
       total: 450,
+      cappedAtDay: false,
     });
     expect(
       calculateHourlyStay(2, 1000, { ...defaults, minHours: 5 }).total,
@@ -57,6 +62,31 @@ describe('calculateHourlyStay', () => {
   it('cobra horas completas cuando se pasa del mínimo', () => {
     expect(calculateHourlyStay(4, 1000, defaults).total).toBe(600);
     expect(calculateHourlyStay(4.2, 1000, defaults).billedHours).toBe(5);
+  });
+
+  it('con el tope activo nunca cobra más que el día completo', () => {
+    // 10 h × 150 = 1500 > día 1200 → se cobra el día
+    expect(calculateHourlyStay(10, 1000, defaults)).toMatchObject({
+      billedHours: 10,
+      total: 1200,
+      cappedAtDay: true,
+    });
+    // 8 h × 150 = 1200 = día → no se marca como tope
+    expect(calculateHourlyStay(8, 1000, defaults).cappedAtDay).toBe(false);
+  });
+
+  it('sin el tope cobra todas las horas', () => {
+    const noCap = { ...defaults, capHourlyAtDayRate: false };
+    expect(calculateHourlyStay(10, 1000, noCap).total).toBe(1500);
+  });
+});
+
+describe('hoursUntilDayRate', () => {
+  it('indica desde cuántas horas conviene el día', () => {
+    expect(hoursUntilDayRate(1000, defaults)).toBe(8);
+    expect(
+      hoursUntilDayRate(1000, { ...defaults, capHourlyAtDayRate: false }),
+    ).toBeNull();
   });
 });
 
@@ -91,5 +121,78 @@ describe('calculateDayCheckOut', () => {
     expect(
       calculateDayCheckOut(checkIn, { dayDurationHours: 12 }).toISOString(),
     ).toBe('2026-10-25T22:30:00.000Z');
+  });
+});
+
+describe('calculateExtraGuests', () => {
+  const doble = { includedAdults: 2, extraAdultRate: 250, extraChildRate: 100 };
+
+  it('cobra adultos por encima de los incluidos y cada niño, por noche', () => {
+    // 3 adultos + 2 niños: 1 × 250 + 2 × 100 = 450 por noche; 3 noches
+    expect(
+      calculateExtraGuests({ adults: 3, children: 2 }, doble, {
+        modality: 'nightly',
+        units: 3,
+      }),
+    ).toEqual({ extraAdults: 1, perUnit: 450, total: 1350 });
+  });
+
+  it('sin personas extra no hay cargo', () => {
+    expect(
+      calculateExtraGuests({ adults: 2, children: 0 }, doble, {
+        modality: 'daily',
+        units: 1,
+      }).total,
+    ).toBe(0);
+  });
+
+  it('las semanas cuentan como 7 noches y por horas no se cobra', () => {
+    const guests = { adults: 3, children: 0 };
+    expect(
+      calculateExtraGuests(guests, doble, { modality: 'nightly', units: 7 })
+        .total,
+    ).toBe(1750);
+    expect(
+      calculateExtraGuests(guests, doble, { modality: 'hourly', units: 5 })
+        .total,
+    ).toBe(0);
+  });
+});
+
+describe('calculateTaxBreakdown', () => {
+  const taxes = { vatPercent: 16, lodgingTaxPercent: 3 };
+
+  it('desglosa un precio con IVA e ISH incluidos', () => {
+    expect(calculateTaxBreakdown(1000, taxes)).toEqual({
+      subtotal: 840.34,
+      vat: 134.45,
+      lodgingTax: 25.21,
+      total: 1000,
+    });
+  });
+
+  it('la suma siempre cuadra exactamente con el total', () => {
+    const configs = [
+      taxes,
+      { vatPercent: 16, lodgingTaxPercent: 5 },
+      { vatPercent: 16, lodgingTaxPercent: 2.5 },
+      { vatPercent: 8, lodgingTaxPercent: 0 },
+    ];
+    for (const config of configs) {
+      for (const total of [1, 99, 850, 1199, 1250, 2500, 15000, 123457]) {
+        const b = calculateTaxBreakdown(total, config);
+        const sumCents =
+          Math.round(b.subtotal * 100) +
+          Math.round(b.vat * 100) +
+          Math.round(b.lodgingTax * 100);
+        expect(sumCents).toBe(total * 100);
+      }
+    }
+  });
+
+  it('sin impuestos todo es subtotal', () => {
+    expect(
+      calculateTaxBreakdown(500, { vatPercent: 0, lodgingTaxPercent: 0 }),
+    ).toEqual({ subtotal: 500, vat: 0, lodgingTax: 0, total: 500 });
   });
 });

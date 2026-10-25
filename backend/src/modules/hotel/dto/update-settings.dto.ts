@@ -1,5 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -61,4 +69,44 @@ export class UpdateSettingsDto {
     message: 'La hora de salida debe tener el formato HH:mm (ej. 12:00)',
   })
   checkOutTime?: string;
+
+  @ApiPropertyOptional({
+    description: 'Si las horas cuestan más que el día, se cobra el día',
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'El tope por hora debe ser verdadero o falso' })
+  capHourlyAtDayRate?: boolean;
+
+  @ApiPropertyOptional({
+    example: 16,
+    description: 'IVA incluido en precios (%)',
+  })
+  @IsOptional()
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'El IVA debe ser un número con máximo 2 decimales' },
+  )
+  @Min(0, { message: 'El IVA no puede ser negativo' })
+  @Max(30, { message: 'El IVA no puede pasar de 30 %' })
+  vatPercent?: number;
+
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'ISH incluido en precios (%)',
+  })
+  @IsOptional()
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'El ISH debe ser un número con máximo 2 decimales' },
+  )
+  @Min(0, { message: 'El ISH no puede ser negativo' })
+  @Max(10, { message: 'El ISH no puede pasar de 10 %' })
+  lodgingTaxPercent?: number;
+
+  @ApiPropertyOptional({ example: 12, description: 'Edad máxima de niño' })
+  @IsOptional()
+  @IsInt({ message: 'La edad de niño debe ser un número entero' })
+  @Min(0, { message: 'La edad de niño no puede ser negativa' })
+  @Max(17, { message: 'La edad de niño no puede pasar de 17 años' })
+  childMaxAge?: number;
 }

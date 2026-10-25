@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, type ComponentProps } from 'react';
+import type { FieldError as FormFieldError } from 'react-hook-form';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Loader2 } from 'lucide-react';
@@ -26,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useHotel } from '@/features/hotel/hotel-api';
 import { calculateRates } from '@/features/hotel/pricing';
+import { TaxBreakdown } from '@/features/hotel/tax-breakdown';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { AMENITIES, AMENITY_LIST } from '../amenities';
@@ -40,23 +42,31 @@ const int = (label: string, min: number, max: number) =>
     .min(min, `Mínimo ${min}`)
     .max(max, `Máximo ${max}`);
 
-const schema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, 'Escribe el nombre')
-    .max(80, 'Máximo 80 caracteres'),
-  description: z.string().max(500, 'Máximo 500 caracteres'),
-  maxAdults: int('la capacidad de adultos', 1, 20),
-  maxChildren: int('la capacidad de niños', 0, 20),
-  nightlyRate: z
-    .number({ error: 'Escribe el precio por noche' })
-    .int('El precio debe ser en pesos enteros (sin centavos)')
-    .min(1, 'El precio debe ser mayor a 0')
-    .max(1_000_000, 'El precio es demasiado alto'),
-  amenities: z.array(z.string()),
-  isActive: z.boolean(),
-});
+const schema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Escribe el nombre')
+      .max(80, 'Máximo 80 caracteres'),
+    description: z.string().max(500, 'Máximo 500 caracteres'),
+    maxAdults: int('la capacidad de adultos', 1, 20),
+    maxChildren: int('la capacidad de niños', 0, 20),
+    nightlyRate: z
+      .number({ error: 'Escribe el precio por noche' })
+      .int('El precio debe ser en pesos enteros (sin centavos)')
+      .min(1, 'El precio debe ser mayor a 0')
+      .max(1_000_000, 'El precio es demasiado alto'),
+    amenities: z.array(z.string()),
+    includedAdults: int('los adultos incluidos', 1, 20),
+    extraAdultRate: int('el cargo por adulto extra', 0, 100_000),
+    extraChildRate: int('el cargo por niño extra', 0, 100_000),
+    isActive: z.boolean(),
+  })
+  .refine((v) => v.includedAdults <= v.maxAdults, {
+    path: ['includedAdults'],
+    message: 'No pueden ser más que la capacidad de adultos',
+  });
 
 type Values = z.infer<typeof schema>;
 
@@ -66,6 +76,9 @@ const EMPTY: Values = {
   maxAdults: 2,
   maxChildren: 0,
   nightlyRate: 1000,
+  includedAdults: 2,
+  extraAdultRate: 0,
+  extraChildRate: 0,
   amenities: ['WIFI', 'AIR_CONDITIONING', 'TV'],
   isActive: true,
 };
@@ -101,6 +114,9 @@ export function RoomTypeFormDialog({
             maxAdults: roomType.maxAdults,
             maxChildren: roomType.maxChildren,
             nightlyRate: roomType.nightlyRate,
+            includedAdults: roomType.includedAdults,
+            extraAdultRate: roomType.extraAdultRate,
+            extraChildRate: roomType.extraChildRate,
             amenities: roomType.amenities,
             isActive: roomType.isActive,
           }
@@ -120,6 +136,9 @@ export function RoomTypeFormDialog({
         maxAdults: values.maxAdults,
         maxChildren: values.maxChildren,
         nightlyRate: values.nightlyRate,
+        includedAdults: values.includedAdults,
+        extraAdultRate: values.extraAdultRate,
+        extraChildRate: values.extraChildRate,
         amenities: values.amenities as Amenity[],
         ...(isEdit && { isActive: values.isActive }),
       });
@@ -210,8 +229,38 @@ export function RoomTypeFormDialog({
               </Field>
             </div>
 
+            <div className="grid grid-cols-3 gap-4">
+              <Field data-invalid={!!errors.includedAdults}>
+                <FieldLabel htmlFor="rt-included">Adultos incluidos</FieldLabel>
+                <Input
+                  id="rt-included"
+                  type="number"
+                  min={1}
+                  aria-invalid={!!errors.includedAdults}
+                  {...register('includedAdults', { valueAsNumber: true })}
+                />
+                <FieldError errors={[errors.includedAdults]} />
+              </Field>
+              <MoneyField
+                id="rt-extra-adult"
+                label="Adulto extra"
+                error={errors.extraAdultRate}
+                {...register('extraAdultRate', { valueAsNumber: true })}
+              />
+              <MoneyField
+                id="rt-extra-child"
+                label="Niño extra"
+                error={errors.extraChildRate}
+                {...register('extraChildRate', { valueAsNumber: true })}
+              />
+              <FieldDescription className="col-span-3 -mt-2">
+                Cargos por noche o por día. Cada niño paga su cargo; por horas
+                no se cobran personas extra.
+              </FieldDescription>
+            </div>
+
             {hotel && (
-              <div className="space-y-2 rounded-xl border border-dashed bg-muted/20 p-3">
+              <div className="space-y-3 rounded-xl border border-dashed bg-muted/20 p-3">
                 <p className="text-xs font-medium text-muted-foreground">
                   Tarifas calculadas
                 </p>
@@ -220,6 +269,9 @@ export function RoomTypeFormDialog({
                     rates={calculateRates(nightlyRate, hotel.settings)}
                     settings={hotel.settings}
                   />
+                ) : null}
+                {validRate ? (
+                  <TaxBreakdown total={nightlyRate} taxes={hotel.settings} />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Escribe un precio por noche en pesos enteros.
@@ -305,5 +357,35 @@ export function RoomTypeFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function MoneyField({
+  id,
+  label,
+  error,
+  ...inputProps
+}: { id: string; label: string; error?: FormFieldError } & ComponentProps<
+  typeof Input
+>) {
+  return (
+    <Field data-invalid={!!error}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <div className="relative">
+        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
+          $
+        </span>
+        <Input
+          id={id}
+          type="number"
+          min={0}
+          step={1}
+          className="pl-6"
+          aria-invalid={!!error}
+          {...inputProps}
+        />
+      </div>
+      <FieldError errors={[error]} />
+    </Field>
   );
 }

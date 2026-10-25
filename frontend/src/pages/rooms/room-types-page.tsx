@@ -11,6 +11,7 @@ import { RatesGrid } from '@/features/rooms/components/rates-grid';
 import { RoomTypeFormDialog } from '@/features/rooms/components/room-type-form-dialog';
 import { useRoomTypes } from '@/features/rooms/rooms-api';
 import type { RoomType } from '@/features/rooms/types';
+import { formatMoney } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export function RoomTypesPage() {
@@ -131,6 +132,20 @@ export function RoomTypesPage() {
               </div>
 
               <RatesGrid rates={type.rates} settings={hotel?.settings} />
+
+              <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span>
+                  Incluye {type.includedAdults}{' '}
+                  {type.includedAdults === 1 ? 'adulto' : 'adultos'}
+                </span>
+                {type.extraAdultRate > 0 && (
+                  <span>· Adulto extra {formatMoney(type.extraAdultRate)}</span>
+                )}
+                {type.extraChildRate > 0 && (
+                  <span>· Niño {formatMoney(type.extraChildRate)}</span>
+                )}
+                <span>· Impuestos incluidos</span>
+              </p>
 
               {type.amenities.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">

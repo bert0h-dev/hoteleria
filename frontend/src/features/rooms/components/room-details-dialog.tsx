@@ -45,6 +45,8 @@ import type { Room, RoomStatus } from '../types';
 import { RoomStatusBadge } from './room-status-badge';
 
 const SELF = 'self';
+// Registros visibles del historial antes de que aparezca el scroll.
+const MAX_VISIBLE_HISTORY = 8;
 
 /** Detalle de la habitación en un diálogo centrado. */
 export function RoomDetailsDialog({
@@ -328,7 +330,14 @@ function History({ roomId }: { roomId: string }) {
 
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-semibold">Historial</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
+        Historial
+        {!!data?.length && (
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+            {data.length} {data.length === 1 ? 'cambio' : 'cambios'}
+          </span>
+        )}
+      </h3>
       {isLoading && (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
@@ -341,43 +350,53 @@ function History({ roomId }: { roomId: string }) {
           Aún no hay cambios de estado.
         </p>
       )}
-      <ol className="relative space-y-4 border-l pl-5">
-        {data?.map((log) => {
-          const to = ROOM_STATUS[log.toStatus];
-          return (
-            <li key={log.id} className="relative">
-              <span
-                className={cn(
-                  'absolute top-1 -left-[26px] size-3 rounded-full ring-4 ring-background',
-                  to.dot,
-                )}
-              />
-              <p className="text-sm">
-                <span className="font-medium">{log.changedBy.name}</span>{' '}
-                <span className="text-muted-foreground">cambió de</span>{' '}
-                {ROOM_STATUS[log.fromStatus].label.toLowerCase()}{' '}
-                <span className="text-muted-foreground">a</span>{' '}
-                <span className="font-medium">{to.label.toLowerCase()}</span>
-              </p>
-              {log.cleanedBy && (
-                <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
-                  <Sparkles className="size-3" />
-                  Limpió {log.cleanedBy.name}
-                  {log.cleanedAt && ` · ${formatDateTime(log.cleanedAt)}`}
-                </p>
-              )}
-              {log.reason && (
-                <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-xs">
-                  {log.reason}
-                </p>
-              )}
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {formatDateTime(log.createdAt)}
-              </p>
-            </li>
-          );
-        })}
-      </ol>
+      {/* Alto para ~8 registros; después, scroll solo dentro de la lista. */}
+      <div className="relative">
+        <div className="max-h-[34rem] overflow-y-auto pr-2 pl-2">
+          <ol className="relative space-y-4 border-l pl-5">
+            {data?.map((log) => {
+              const to = ROOM_STATUS[log.toStatus];
+              return (
+                <li key={log.id} className="relative">
+                  <span
+                    className={cn(
+                      'absolute top-1 -left-[26px] size-3 rounded-full ring-4 ring-background',
+                      to.dot,
+                    )}
+                  />
+                  <p className="text-sm">
+                    <span className="font-medium">{log.changedBy.name}</span>{' '}
+                    <span className="text-muted-foreground">cambió de</span>{' '}
+                    {ROOM_STATUS[log.fromStatus].label.toLowerCase()}{' '}
+                    <span className="text-muted-foreground">a</span>{' '}
+                    <span className="font-medium">
+                      {to.label.toLowerCase()}
+                    </span>
+                  </p>
+                  {log.cleanedBy && (
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
+                      <Sparkles className="size-3" />
+                      Limpió {log.cleanedBy.name}
+                      {log.cleanedAt && ` · ${formatDateTime(log.cleanedAt)}`}
+                    </p>
+                  )}
+                  {log.reason && (
+                    <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-xs">
+                      {log.reason}
+                    </p>
+                  )}
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatDateTime(log.createdAt)}
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+        {(data?.length ?? 0) > MAX_VISIBLE_HISTORY && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-popover to-transparent" />
+        )}
+      </div>
     </section>
   );
 }

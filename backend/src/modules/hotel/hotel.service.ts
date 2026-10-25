@@ -57,6 +57,10 @@ export class HotelService {
         weekRatePercent: dto.weekRatePercent,
         checkInTime: dto.checkInTime,
         checkOutTime: dto.checkOutTime,
+        capHourlyAtDayRate: dto.capHourlyAtDayRate,
+        vatPercent: dto.vatPercent,
+        lodgingTaxPercent: dto.lodgingTaxPercent,
+        childMaxAge: dto.childMaxAge,
       },
       update: dto,
     });

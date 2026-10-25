@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Baby,
   Building2,
+  Receipt,
   CalendarRange,
   Calculator,
   Clock,
@@ -24,12 +26,14 @@ import {
 } from '@/components/ui/card';
 import {
   Field,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useHotel,
@@ -41,7 +45,9 @@ import {
   calculateHourlyStay,
   calculateNightlyStay,
   calculateRates,
+  hoursUntilDayRate,
 } from '@/features/hotel/pricing';
+import { TaxBreakdown } from '@/features/hotel/tax-breakdown';
 import { RatesGrid } from '@/features/rooms/components/rates-grid';
 import { getErrorMessage } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
@@ -89,6 +95,13 @@ const intIn = (min: number, max: number, unit = '') =>
     .min(min, `Mínimo ${min}${unit}`)
     .max(max, `Máximo ${max}${unit}`);
 
+const decimalIn = (min: number, max: number) =>
+  z
+    .number({ error: 'Escribe un número' })
+    .min(min, `Mínimo ${min} %`)
+    .max(max, `Máximo ${max} %`)
+    .refine((n) => Math.round(n * 100) === n * 100, 'Usa máximo 2 decimales');
+
 const settingsSchema = z.object({
   hourlyRatePercent: intIn(1, 100, ' %'),
   minHours: intIn(1, 24, ' h'),
@@ -97,6 +110,10 @@ const settingsSchema = z.object({
   weekRatePercent: intIn(100, 700, ' %'),
   checkInTime: time,
   checkOutTime: time,
+  capHourlyAtDayRate: z.boolean(),
+  vatPercent: decimalIn(0, 30),
+  lodgingTaxPercent: decimalIn(0, 10),
+  childMaxAge: intIn(0, 17, ' años'),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -131,10 +148,11 @@ function RatesForm({ hotel }: { hotel: Hotel }) {
     }
   });
 
-  const pct = (name: keyof SettingsValues, suffix: string) => (
+  const pct = (name: keyof SettingsValues, suffix: string, step = 1) => (
     <div className="relative">
       <Input
         type="number"
+        step={step}
         className="pr-10"
         aria-invalid={!!errors[name]}
         {...register(name, { valueAsNumber: true })}
@@ -221,6 +239,67 @@ function RatesForm({ hotel }: { hotel: Hotel }) {
             </div>
           </FieldGroup>
 
+          <div className="space-y-4 border-t pt-6">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <Receipt className="size-4 text-primary" />
+                Impuestos y huéspedes
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Los precios <b>ya incluyen</b> IVA e ISH; aquí solo se indica
+                cuánto desglosar en los comprobantes.
+              </p>
+            </div>
+            <FieldGroup className="grid gap-5 sm:grid-cols-3">
+              <Field data-invalid={!!errors.vatPercent}>
+                <FieldLabel>IVA</FieldLabel>
+                {pct('vatPercent', '%', 0.01)}
+                <FieldError errors={[errors.vatPercent]} />
+              </Field>
+              <Field data-invalid={!!errors.lodgingTaxPercent}>
+                <FieldLabel>ISH</FieldLabel>
+                {pct('lodgingTaxPercent', '%', 0.01)}
+                <FieldDescription>Impuesto Sobre Hospedaje.</FieldDescription>
+                <FieldError errors={[errors.lodgingTaxPercent]} />
+              </Field>
+              <Field data-invalid={!!errors.childMaxAge}>
+                <FieldLabel className="flex items-center gap-1.5">
+                  <Baby className="size-3.5" /> Edad de niño
+                </FieldLabel>
+                {pct('childMaxAge', 'años')}
+                <FieldDescription>
+                  Hasta esta edad cuenta como niño.
+                </FieldDescription>
+                <FieldError errors={[errors.childMaxAge]} />
+              </Field>
+            </FieldGroup>
+            <Controller
+              control={control}
+              name="capHourlyAtDayRate"
+              render={({ field }) => (
+                <Field
+                  orientation="horizontal"
+                  className="rounded-lg border p-4"
+                >
+                  <FieldContent>
+                    <FieldLabel htmlFor="cap-hourly">
+                      Tope de la tarifa por hora
+                    </FieldLabel>
+                    <FieldDescription>
+                      Si las horas cuestan más que el día completo, se cobra el
+                      día.
+                    </FieldDescription>
+                  </FieldContent>
+                  <Switch
+                    id="cap-hourly"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </Field>
+              )}
+            />
+          </div>
+
           <LiveCalculator
             settings={live}
             sample={sample}
@@ -257,6 +336,10 @@ function pickSettings(hotel: Hotel): SettingsValues {
     weekRatePercent: s.weekRatePercent,
     checkInTime: s.checkInTime,
     checkOutTime: s.checkOutTime,
+    capHourlyAtDayRate: s.capHourlyAtDayRate,
+    vatPercent: s.vatPercent,
+    lodgingTaxPercent: s.lodgingTaxPercent,
+    childMaxAge: s.childMaxAge,
   };
 }
 
@@ -289,6 +372,7 @@ function LiveCalculator({
   const rates = valid ? calculateRates(sample, settings) : null;
   const hourly = valid ? calculateHourlyStay(1, sample, settings) : null;
   const tenNights = valid ? calculateNightlyStay(10, sample, settings) : null;
+  const dayFrom = valid ? hoursUntilDayRate(sample, settings) : null;
 
   return (
     <div className="space-y-4 rounded-xl border bg-linear-to-br from-brand-from/[0.07] to-brand-to/[0.03] p-4">
@@ -323,6 +407,13 @@ function LiveCalculator({
             <Example>
               Estancia por horas (mín. {settings.minHours} h):{' '}
               <b>{formatMoney(hourly.total)}</b>
+              {dayFrom && (
+                <>
+                  {' '}
+                  · desde <b>{dayFrom} h</b> se cobra el día (
+                  {formatMoney(rates.daily)})
+                </>
+              )}
             </Example>
             <Example>
               Día completo: entrada 10:30 → salida{' '}
@@ -337,6 +428,12 @@ function LiveCalculator({
               noches = <b>{formatMoney(tenNights.total)}</b>
             </Example>
           </ul>
+          <div className="rounded-lg border bg-background/60 p-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
+              Desglose de una noche de {formatMoney(sample)}
+            </p>
+            <TaxBreakdown total={sample} taxes={settings} />
+          </div>
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
