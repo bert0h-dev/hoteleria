@@ -30,8 +30,38 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <HomePage /> },
           {
+            path: 'habitaciones',
+            lazy: () =>
+              import('@/pages/rooms/rooms-layout').then((m) => ({
+                Component: m.RoomsLayout,
+              })),
+            children: [
+              {
+                index: true,
+                lazy: () =>
+                  import('@/pages/rooms/rooms-board-page').then((m) => ({
+                    Component: m.RoomsBoardPage,
+                  })),
+              },
+              {
+                path: 'tipos',
+                lazy: () =>
+                  import('@/pages/rooms/room-types-page').then((m) => ({
+                    Component: m.RoomTypesPage,
+                  })),
+              },
+            ],
+          },
+          {
             element: <RequireRole roles={['ADMIN']} />,
             children: [
+              {
+                path: 'configuracion',
+                lazy: () =>
+                  import('@/pages/settings-page').then((m) => ({
+                    Component: m.SettingsPage,
+                  })),
+              },
               {
                 path: 'usuarios',
                 lazy: () =>

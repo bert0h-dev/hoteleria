@@ -217,10 +217,29 @@ describe('Configuración y catálogo de habitaciones (e2e)', () => {
     const notCleaning = await as('recep')
       .patch(`/api/rooms/${roomId}/status`, {
         status: 'MAINTENANCE',
+        reason: 'Revisión',
         cleanedById: housekeeperId,
       })
       .expect(400);
     expect(notCleaning.body.message).toMatch(/quién limpió/);
+  });
+
+  it('mantenimiento exige motivo', async () => {
+    const res = await as('recep')
+      .patch(`/api/rooms/${roomId}/status`, { status: 'MAINTENANCE' })
+      .expect(400);
+    expect(res.body.message).toBe(
+      'Indica el motivo para pasar la habitación a «Mantenimiento»',
+    );
+    await as('recep')
+      .patch(`/api/rooms/${roomId}/status`, {
+        status: 'MAINTENANCE',
+        reason: 'Fuga en el lavabo',
+      })
+      .expect(200);
+    await as('recep')
+      .patch(`/api/rooms/${roomId}/status`, { status: 'AVAILABLE' })
+      .expect(200);
   });
 
   it('resume las habitaciones por estado', async () => {

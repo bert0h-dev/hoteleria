@@ -28,9 +28,9 @@ export function MainLayout() {
           <SidebarNav />
         </div>
         <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
-          <p className="text-sm font-medium">Fase 2 de 9</p>
+          <p className="text-sm font-medium">Fase 3 de 9</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Pronto: habitaciones, reservas y huéspedes.
+            Pronto: huéspedes y reservas.
           </p>
         </div>
       </aside>

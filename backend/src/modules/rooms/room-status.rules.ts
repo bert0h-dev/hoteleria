@@ -21,6 +21,11 @@ export function canChangeStatus(
   return false;
 }
 
+/** Estados que exigen explicar el motivo del cambio. */
+export function requiresReason(to: RoomStatus): boolean {
+  return to === 'MAINTENANCE' || to === 'OUT_OF_SERVICE';
+}
+
 /** Un cambio de LIMPIEZA a DISPONIBLE significa que se terminó de limpiar. */
 export function completesCleaning(from: RoomStatus, to: RoomStatus): boolean {
   return from === 'CLEANING' && to === 'AVAILABLE';

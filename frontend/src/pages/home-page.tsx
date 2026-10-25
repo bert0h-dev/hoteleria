@@ -30,12 +30,6 @@ function greeting(hour: number) {
 
 const UPCOMING = [
   {
-    icon: BedDouble,
-    title: 'Habitaciones',
-    text: 'Tipos, tarifas y estados',
-    phase: 3,
-  },
-  {
     icon: UsersRound,
     title: 'Huéspedes',
     text: 'Registro y búsqueda',
@@ -46,6 +40,12 @@ const UPCOMING = [
     title: 'Reservas',
     text: 'Disponibilidad y calendario',
     phase: 5,
+  },
+  {
+    icon: BedDouble,
+    title: 'Check-in / Check-out',
+    text: 'Entradas y salidas del día',
+    phase: 6,
   },
   {
     icon: CreditCard,
