@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import {
+  AlertTriangle,
   ArrowRight,
+  CalendarClock,
   Layers,
   Loader2,
   Pencil,
@@ -28,11 +30,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/auth-context';
 import { getErrorMessage } from '@/lib/api';
-import { formatDateTime, formatMoney, formatRelative } from '@/lib/format';
+import {
+  addDays,
+  formatDateTime,
+  formatDay,
+  formatMoney,
+  formatRelative,
+  todayInHotel,
+} from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
   allowedTargets,
   completesCleaning,
+  isBlockingStatus,
+  requiresBlockedUntil,
   requiresReason,
   ROOM_STATUS,
 } from '../room-status';
@@ -40,8 +51,10 @@ import {
   useChangeRoomStatus,
   useHousekeepers,
   useRoomHistory,
+  useUpdateBlockedUntil,
 } from '../rooms-api';
 import type { Room, RoomStatus } from '../types';
+import { BlockedUntilPicker } from './blocked-until-picker';
 import { RoomStatusBadge } from './room-status-badge';
 
 const SELF = 'self';
@@ -118,6 +131,14 @@ function RoomDetails({
                   : 'Sin registro'
               }
             />
+            {isBlockingStatus(room.status) && (
+              <div className="col-span-2">
+                <BlockedUntilInfo
+                  room={room}
+                  canEdit={hasRole('ADMIN', 'RECEPTION')}
+                />
+              </div>
+            )}
             {room.notes && (
               <div className="col-span-2">
                 <Info icon={StickyNote} label="Notas" value={room.notes} />
@@ -182,6 +203,7 @@ function StatusChanger({
   );
   const [reason, setReason] = useState('');
   const [cleaner, setCleaner] = useState(SELF);
+  const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const changeStatus = useChangeRoomStatus();
 
@@ -204,6 +226,10 @@ function StatusChanger({
       setError('Escribe el motivo del cambio');
       return;
     }
+    if (requiresBlockedUntil(target) && !blockedUntil) {
+      setError('Elige hasta qué día estará bloqueada');
+      return;
+    }
     setError(null);
     try {
       await changeStatus.mutateAsync({
@@ -211,6 +237,8 @@ function StatusChanger({
         status: target,
         reason: reason.trim() || undefined,
         cleanedById: pickCleaner && cleaner !== SELF ? cleaner : undefined,
+        blockedUntil:
+          isBlockingStatus(target) && blockedUntil ? blockedUntil : undefined,
       });
       toast.success(
         `Habitación ${room.number}: ${ROOM_STATUS[target].label.toLowerCase()}`,
@@ -241,6 +269,10 @@ function StatusChanger({
               onClick={() => {
                 setTarget(s);
                 setError(null);
+                // Mantenimiento propone 3 días; Fuera de servicio, indefinido.
+                setBlockedUntil(
+                  requiresBlockedUntil(s) ? addDays(todayInHotel(), 3) : null,
+                );
               }}
               aria-pressed={active}
               className={cn(
@@ -284,6 +316,15 @@ function StatusChanger({
                 </SelectContent>
               </Select>
             </div>
+          )}
+
+          {isBlockingStatus(target) && (
+            <BlockedUntilPicker
+              id="blocked-until"
+              value={blockedUntil}
+              onChange={setBlockedUntil}
+              allowIndefinite={!requiresBlockedUntil(target)}
+            />
           )}
 
           <div className="space-y-1.5">
@@ -356,6 +397,7 @@ function History({ roomId }: { roomId: string }) {
           <ol className="relative space-y-4 border-l pl-5">
             {data?.map((log) => {
               const to = ROOM_STATUS[log.toStatus];
+              const isDateAdjust = log.fromStatus === log.toStatus;
               return (
                 <li key={log.id} className="relative">
                   <span
@@ -364,15 +406,34 @@ function History({ roomId }: { roomId: string }) {
                       to.dot,
                     )}
                   />
-                  <p className="text-sm">
-                    <span className="font-medium">{log.changedBy.name}</span>{' '}
-                    <span className="text-muted-foreground">cambió de</span>{' '}
-                    {ROOM_STATUS[log.fromStatus].label.toLowerCase()}{' '}
-                    <span className="text-muted-foreground">a</span>{' '}
-                    <span className="font-medium">
-                      {to.label.toLowerCase()}
-                    </span>
-                  </p>
+                  {isDateAdjust ? (
+                    <p className="text-sm">
+                      <span className="font-medium">{log.changedBy.name}</span>{' '}
+                      <span className="text-muted-foreground">
+                        ajustó la fecha estimada:
+                      </span>{' '}
+                      {dayOrIndefinite(log.previousBlockedUntil)} →{' '}
+                      <span className="font-medium">
+                        {dayOrIndefinite(log.blockedUntil)}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-sm">
+                      <span className="font-medium">{log.changedBy.name}</span>{' '}
+                      <span className="text-muted-foreground">cambió de</span>{' '}
+                      {ROOM_STATUS[log.fromStatus].label.toLowerCase()}{' '}
+                      <span className="text-muted-foreground">a</span>{' '}
+                      <span className="font-medium">
+                        {to.label.toLowerCase()}
+                      </span>
+                      {isBlockingStatus(log.toStatus) && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          · hasta {dayOrIndefinite(log.blockedUntil)}
+                        </span>
+                      )}
+                    </p>
+                  )}
                   {log.cleanedBy && (
                     <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
                       <Sparkles className="size-3" />
@@ -398,5 +459,97 @@ function History({ roomId }: { roomId: string }) {
         )}
       </div>
     </section>
+  );
+}
+
+function dayOrIndefinite(date: string | null) {
+  return date ? formatDay(date) : 'indefinido';
+}
+
+/** Fecha estimada del bloqueo, con aviso de vencido y opción de ajustarla. */
+function BlockedUntilInfo({ room, canEdit }: { room: Room; canEdit: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState<string | null>(room.blockedUntil);
+  const update = useUpdateBlockedUntil();
+  const required = requiresBlockedUntil(room.status);
+
+  const save = async () => {
+    try {
+      await update.mutateAsync({ id: room.id, blockedUntil: value });
+      toast.success('Fecha estimada actualizada');
+      setEditing(false);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border bg-muted/30 p-3',
+        room.blockOverdue && 'border-destructive/40 bg-destructive/5',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarClock className="size-3.5" />
+            Fecha estimada de fin
+          </dt>
+          <dd className="mt-1 flex flex-wrap items-center gap-2 font-medium">
+            {room.blockedUntil
+              ? 'Hasta el ' + formatDay(room.blockedUntil)
+              : 'Indefinido'}
+            {room.blockOverdue && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                <AlertTriangle className="size-3" />
+                Vencido
+              </span>
+            )}
+          </dd>
+        </div>
+        {canEdit && !editing && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setValue(room.blockedUntil);
+              setEditing(true);
+            }}
+          >
+            Ajustar fecha
+          </Button>
+        )}
+      </div>
+      {room.blockOverdue && !editing && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          La fecha ya pasó. Libera la habitación si ya está lista o ajusta la
+          fecha.
+        </p>
+      )}
+      {editing && (
+        <div className="mt-3 space-y-3 border-t pt-3">
+          <BlockedUntilPicker
+            id="adjust-blocked-until"
+            value={value}
+            onChange={setValue}
+            allowIndefinite={!required}
+          />
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={save}
+              disabled={update.isPending || (required && !value)}
+            >
+              {update.isPending && <Loader2 className="animate-spin" />}
+              Guardar fecha
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

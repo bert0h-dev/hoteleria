@@ -1,6 +1,8 @@
 import {
   canChangeStatus,
   completesCleaning,
+  isBlockingStatus,
+  requiresBlockedUntil,
   requiresReason,
 } from './room-status.rules.js';
 
@@ -23,6 +25,13 @@ describe('reglas de estado de habitación', () => {
     expect(requiresReason('MAINTENANCE')).toBe(true);
     expect(requiresReason('OUT_OF_SERVICE')).toBe(true);
     expect(requiresReason('CLEANING')).toBe(false);
+  });
+
+  it('mantenimiento exige fecha; fuera de servicio puede ser indefinido', () => {
+    expect(requiresBlockedUntil('MAINTENANCE')).toBe(true);
+    expect(requiresBlockedUntil('OUT_OF_SERVICE')).toBe(false);
+    expect(isBlockingStatus('OUT_OF_SERVICE')).toBe(true);
+    expect(isBlockingStatus('CLEANING')).toBe(false);
   });
 
   it('solo CLEANING → AVAILABLE cuenta como limpieza terminada', () => {

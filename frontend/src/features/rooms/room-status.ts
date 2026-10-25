@@ -79,6 +79,12 @@ export function allowedTargets(role: Role, from: RoomStatus): RoomStatus[] {
   return ROOM_STATUSES.filter((s) => s !== from);
 }
 
+export const isBlockingStatus = (s: RoomStatus) =>
+  s === 'MAINTENANCE' || s === 'OUT_OF_SERVICE';
+
+/** Mantenimiento exige fecha; Fuera de servicio puede ser indefinido. */
+export const requiresBlockedUntil = (s: RoomStatus) => s === 'MAINTENANCE';
+
 export const requiresReason = (to: RoomStatus) =>
   to === 'MAINTENANCE' || to === 'OUT_OF_SERVICE';
 

@@ -7,6 +7,12 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { RoomStatus } from '../../generated/prisma/enums.js';
+import {
+  fromDbDate,
+  isBlockOverdue,
+  todayIn,
+  toDbDate,
+} from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { RoomTypesService } from '../room-types/room-types.service.js';
@@ -14,11 +20,14 @@ import type {
   ChangeRoomStatusDto,
   CreateRoomDto,
   QueryRoomsDto,
+  UpdateBlockedUntilDto,
   UpdateRoomDto,
 } from './dto/room.dto.js';
 import {
   canChangeStatus,
   completesCleaning,
+  isBlockingStatus,
+  requiresBlockedUntil,
   requiresReason,
   ROOM_STATUS_LABELS,
 } from './room-status.rules.js';
@@ -30,6 +39,10 @@ const roomInclude = {
   lastCleanedBy: personSelect,
 } satisfies Prisma.RoomInclude;
 
+type RoomRow = Prisma.RoomGetPayload<{ include: typeof roomInclude }>;
+
+const BLOCKING: RoomStatus[] = ['MAINTENANCE', 'OUT_OF_SERVICE'];
+
 @Injectable()
 export class RoomsService {
   constructor(
@@ -37,9 +50,10 @@ export class RoomsService {
     private readonly roomTypes: RoomTypesService,
   ) {}
 
-  findAll(actor: AuthUser, query: QueryRoomsDto) {
+  async findAll(actor: AuthUser, query: QueryRoomsDto) {
+    const timeZone = await this.timeZone(actor);
     const search = query.search?.trim().toUpperCase();
-    return this.prisma.room.findMany({
+    const rooms = await this.prisma.room.findMany({
       where: {
         hotelId: actor.hotelId,
         status: query.status,
@@ -47,40 +61,45 @@ export class RoomsService {
         roomTypeId: query.roomTypeId,
         ...(!query.includeInactive && { isActive: true }),
         ...(search && { number: { contains: search } }),
+        ...(query.overdue && overdueWhere(timeZone)),
       },
       include: roomInclude,
       orderBy: [{ floor: 'asc' }, { number: 'asc' }],
     });
+    return rooms.map((room) => present(room, timeZone));
   }
 
-  /** Cantidad de habitaciones activas por estado. */
+  /** Cantidad de habitaciones activas por estado y bloqueos vencidos. */
   async summary(actor: AuthUser) {
-    const groups = await this.prisma.room.groupBy({
-      by: ['status'],
-      where: { hotelId: actor.hotelId, isActive: true },
-      _count: { _all: true },
-    });
+    const timeZone = await this.timeZone(actor);
+    const where = { hotelId: actor.hotelId, isActive: true };
+    const [groups, overdue] = await Promise.all([
+      this.prisma.room.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+      }),
+      this.prisma.room.count({
+        where: { ...where, ...overdueWhere(timeZone) },
+      }),
+    ]);
     const byStatus = Object.fromEntries(
       Object.values(RoomStatus).map((s) => [s, 0]),
     ) as Record<RoomStatus, number>;
     for (const g of groups) byStatus[g.status] = g._count._all;
     const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
-    return { total, byStatus };
+    return { total, byStatus, overdue };
   }
 
   async findOne(actor: AuthUser, id: string) {
-    const room = await this.prisma.room.findFirst({
-      where: { id, hotelId: actor.hotelId },
-      include: roomInclude,
-    });
-    if (!room) throw new NotFoundException('Habitación no encontrada');
-    return room;
+    const room = await this.findRow(actor, id);
+    return present(room, await this.timeZone(actor));
   }
 
   async create(actor: AuthUser, dto: CreateRoomDto) {
     await this.roomTypes.findOrThrow(actor, dto.roomTypeId);
     try {
-      return await this.prisma.room.create({
+      const room = await this.prisma.room.create({
         data: {
           hotelId: actor.hotelId,
           roomTypeId: dto.roomTypeId,
@@ -90,27 +109,30 @@ export class RoomsService {
         },
         include: roomInclude,
       });
+      return present(room, await this.timeZone(actor));
     } catch (error) {
       throw mapUniqueNumber(error);
     }
   }
 
   async update(actor: AuthUser, id: string, dto: UpdateRoomDto) {
-    await this.findOne(actor, id);
+    await this.findRow(actor, id);
     if (dto.roomTypeId) await this.roomTypes.findOrThrow(actor, dto.roomTypeId);
     try {
-      return await this.prisma.room.update({
+      const room = await this.prisma.room.update({
         where: { id },
         data: dto,
         include: roomInclude,
       });
+      return present(room, await this.timeZone(actor));
     } catch (error) {
       throw mapUniqueNumber(error);
     }
   }
 
   async changeStatus(actor: AuthUser, id: string, dto: ChangeRoomStatusDto) {
-    const room = await this.findOne(actor, id);
+    const room = await this.findRow(actor, id);
+    const timeZone = await this.timeZone(actor);
     const from = room.status;
     const to = dto.status;
 
@@ -127,12 +149,25 @@ export class RoomsService {
         `Tu rol no puede cambiar una habitación de «${ROOM_STATUS_LABELS[from]}» a «${ROOM_STATUS_LABELS[to]}»`,
       );
     }
-
     if (requiresReason(to) && !dto.reason) {
       throw new BadRequestException(
         `Indica el motivo para pasar la habitación a «${ROOM_STATUS_LABELS[to]}»`,
       );
     }
+
+    // Fecha estimada de fin: solo en estados de bloqueo.
+    if (requiresBlockedUntil(to) && !dto.blockedUntil) {
+      throw new BadRequestException(
+        `Indica hasta qué fecha estará en «${ROOM_STATUS_LABELS[to]}»`,
+      );
+    }
+    if (dto.blockedUntil && !isBlockingStatus(to)) {
+      throw new BadRequestException(
+        'La fecha estimada solo aplica a «Mantenimiento» o «Fuera de servicio»',
+      );
+    }
+    if (dto.blockedUntil) assertNotPast(dto.blockedUntil, timeZone);
+    const blockedUntil = dto.blockedUntil ? toDbDate(dto.blockedUntil) : null;
 
     const isCleaningDone = completesCleaning(from, to);
     if (dto.cleanedById && !isCleaningDone) {
@@ -145,12 +180,14 @@ export class RoomsService {
       : null;
     const now = new Date();
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       // Solo cambia si nadie lo modificó mientras tanto.
       const { count } = await tx.room.updateMany({
         where: { id, status: from },
         data: {
           status: to,
+          // Al salir de un bloqueo la fecha se borra sola.
+          blockedUntil,
           ...(cleanedById && {
             lastCleanedAt: now,
             lastCleanedById: cleanedById,
@@ -172,6 +209,7 @@ export class RoomsService {
           changedById: actor.id,
           cleanedById,
           cleanedAt: cleanedById ? now : null,
+          blockedUntil,
         },
       });
       return tx.room.findUniqueOrThrow({
@@ -179,16 +217,72 @@ export class RoomsService {
         include: roomInclude,
       });
     });
+    return present(updated, timeZone);
+  }
+
+  /** Ajusta la fecha estimada de un bloqueo sin cambiar el estado. */
+  async updateBlockedUntil(
+    actor: AuthUser,
+    id: string,
+    dto: UpdateBlockedUntilDto,
+  ) {
+    const room = await this.findRow(actor, id);
+    const timeZone = await this.timeZone(actor);
+
+    if (!isBlockingStatus(room.status)) {
+      throw new BadRequestException(
+        'Solo se ajusta la fecha de habitaciones en «Mantenimiento» o «Fuera de servicio»',
+      );
+    }
+    if (!dto.blockedUntil && requiresBlockedUntil(room.status)) {
+      throw new BadRequestException(
+        `Una habitación en «${ROOM_STATUS_LABELS[room.status]}» necesita fecha estimada`,
+      );
+    }
+    if (dto.blockedUntil) assertNotPast(dto.blockedUntil, timeZone);
+
+    const blockedUntil = dto.blockedUntil ? toDbDate(dto.blockedUntil) : null;
+    const previous = room.blockedUntil;
+    if ((previous?.getTime() ?? null) === (blockedUntil?.getTime() ?? null)) {
+      throw new BadRequestException('La fecha estimada no cambió');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.room.update({ where: { id }, data: { blockedUntil } });
+      // Mismo estado de origen y destino = ajuste de fecha.
+      await tx.roomStatusLog.create({
+        data: {
+          hotelId: actor.hotelId,
+          roomId: id,
+          fromStatus: room.status,
+          toStatus: room.status,
+          changedById: actor.id,
+          blockedUntil,
+          previousBlockedUntil: previous,
+        },
+      });
+      return tx.room.findUniqueOrThrow({
+        where: { id },
+        include: roomInclude,
+      });
+    });
+    return present(updated, timeZone);
   }
 
   async history(actor: AuthUser, id: string) {
-    await this.findOne(actor, id);
-    return this.prisma.roomStatusLog.findMany({
+    await this.findRow(actor, id);
+    const logs = await this.prisma.roomStatusLog.findMany({
       where: { roomId: id },
       include: { changedBy: personSelect, cleanedBy: personSelect },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+    return logs.map((log) => ({
+      ...log,
+      blockedUntil: log.blockedUntil && fromDbDate(log.blockedUntil),
+      previousBlockedUntil:
+        log.previousBlockedUntil && fromDbDate(log.previousBlockedUntil),
+    }));
   }
 
   /** Personal de limpieza activo del hotel (para indicar quién limpió). */
@@ -198,6 +292,23 @@ export class RoomsService {
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
+  }
+
+  private async findRow(actor: AuthUser, id: string): Promise<RoomRow> {
+    const room = await this.prisma.room.findFirst({
+      where: { id, hotelId: actor.hotelId },
+      include: roomInclude,
+    });
+    if (!room) throw new NotFoundException('Habitación no encontrada');
+    return room;
+  }
+
+  private async timeZone(actor: AuthUser): Promise<string> {
+    const hotel = await this.prisma.hotel.findUniqueOrThrow({
+      where: { id: actor.hotelId },
+      select: { timezone: true },
+    });
+    return hotel.timezone;
   }
 
   /**
@@ -225,6 +336,32 @@ export class RoomsService {
       );
     }
     return cleaner.id;
+  }
+}
+
+/** Respuesta de la API: fecha como YYYY-MM-DD y si el bloqueo ya venció. */
+function present(room: RoomRow, timeZone: string) {
+  return {
+    ...room,
+    blockedUntil: room.blockedUntil && fromDbDate(room.blockedUntil),
+    blockOverdue:
+      isBlockingStatus(room.status) &&
+      isBlockOverdue(room.blockedUntil, timeZone),
+  };
+}
+
+function overdueWhere(timeZone: string): Prisma.RoomWhereInput {
+  return {
+    status: { in: BLOCKING },
+    blockedUntil: { lt: toDbDate(todayIn(timeZone)) },
+  };
+}
+
+function assertNotPast(date: string, timeZone: string) {
+  if (date < todayIn(timeZone)) {
+    throw new BadRequestException(
+      'La fecha estimada no puede estar en el pasado',
+    );
   }
 }
 

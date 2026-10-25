@@ -26,6 +26,16 @@ export function requiresReason(to: RoomStatus): boolean {
   return to === 'MAINTENANCE' || to === 'OUT_OF_SERVICE';
 }
 
+/** Estados que bloquean la habitación con una fecha estimada de fin. */
+export function isBlockingStatus(status: RoomStatus): boolean {
+  return status === 'MAINTENANCE' || status === 'OUT_OF_SERVICE';
+}
+
+/** Mantenimiento exige fecha estimada; Fuera de servicio puede ser indefinido. */
+export function requiresBlockedUntil(status: RoomStatus): boolean {
+  return status === 'MAINTENANCE';
+}
+
 /** Un cambio de LIMPIEZA a DISPONIBLE significa que se terminó de limpiar. */
 export function completesCleaning(from: RoomStatus, to: RoomStatus): boolean {
   return from === 'CLEANING' && to === 'AVAILABLE';

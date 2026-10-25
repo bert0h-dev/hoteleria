@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BedDouble, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, BedDouble, Plus, Search, X } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,7 @@ export function RoomsBoardPage() {
   const [typeId, setTypeId] = useState(ALL);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const debouncedSearch = useDebouncedValue(search.trim());
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export function RoomsBoardPage() {
     roomTypeId: typeId === ALL ? undefined : typeId,
     search: debouncedSearch || undefined,
     includeInactive: isAdmin && showInactive ? true : undefined,
+    overdue: overdueOnly || undefined,
   });
 
   // Agrupa por piso para el tablero.
@@ -65,7 +67,8 @@ export function RoomsBoardPage() {
     { value: ALL, label: 'Todos los tipos' },
     ...types.map((t) => ({ value: t.id, label: t.name })),
   ];
-  const hasFilters = !!status || typeId !== ALL || !!search;
+  const hasFilters = !!status || typeId !== ALL || !!search || overdueOnly;
+  const overdueCount = summary.data?.overdue ?? 0;
 
   const openCreate = () => {
     setEditing(null);
@@ -139,6 +142,35 @@ export function RoomsBoardPage() {
         })}
       </div>
 
+      {/* Bloqueos vencidos */}
+      {overdueCount > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center">
+          <div className="flex flex-1 items-start gap-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive">
+              <AlertTriangle className="size-4" />
+            </div>
+            <div>
+              <p className="font-medium">
+                {overdueCount === 1
+                  ? '1 bloqueo vencido'
+                  : overdueCount + ' bloqueos vencidos'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Ya pasó su fecha estimada y siguen en mantenimiento o fuera de
+                servicio. Libéralas si ya están listas o ajusta la fecha.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant={overdueOnly ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setOverdueOnly((v) => !v)}
+          >
+            {overdueOnly ? 'Ver todas' : 'Ver vencidas'}
+          </Button>
+        </div>
+      )}
+
       {/* Filtros */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-xs">
@@ -189,6 +221,7 @@ export function RoomsBoardPage() {
               setStatus(null);
               setTypeId(ALL);
               setSearch('');
+              setOverdueOnly(false);
             }}
           >
             <X />

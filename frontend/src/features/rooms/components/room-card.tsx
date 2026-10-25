@@ -1,7 +1,7 @@
-import { Sparkles } from 'lucide-react';
-import { formatRelative } from '@/lib/format';
+import { AlertTriangle, CalendarClock, Sparkles } from 'lucide-react';
+import { formatDay, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { ROOM_STATUS } from '../room-status';
+import { isBlockingStatus, ROOM_STATUS } from '../room-status';
 import type { Room } from '../types';
 
 export function RoomCard({
@@ -21,6 +21,7 @@ export function RoomCard({
       className={cn(
         'group relative flex flex-col gap-3 overflow-hidden rounded-xl border-2 p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
         style.card,
+        room.blockOverdue && 'border-destructive/60',
         !room.isActive && 'border-dashed opacity-50',
       )}
     >
@@ -53,6 +54,26 @@ export function RoomCard({
           {room.isActive ? style.label : 'Dada de baja'}
         </p>
       </div>
+
+      {room.isActive && isBlockingStatus(room.status) && (
+        <p
+          className={cn(
+            'flex items-center gap-1 text-[11px] font-medium',
+            room.blockOverdue ? 'text-destructive' : 'text-muted-foreground',
+          )}
+        >
+          {room.blockOverdue ? (
+            <AlertTriangle className="size-3 shrink-0" />
+          ) : (
+            <CalendarClock className="size-3 shrink-0" />
+          )}
+          {room.blockOverdue
+            ? 'Vencido · ' + formatDay(room.blockedUntil!)
+            : room.blockedUntil
+              ? 'Hasta ' + formatDay(room.blockedUntil)
+              : 'Indefinido'}
+        </p>
+      )}
 
       {room.lastCleanedBy && room.lastCleanedAt && (
         <p

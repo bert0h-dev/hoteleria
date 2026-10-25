@@ -74,6 +74,7 @@ export interface RoomsQuery {
   roomTypeId?: string;
   search?: string;
   includeInactive?: boolean;
+  overdue?: boolean;
 }
 
 export function useRooms(query: RoomsQuery) {
@@ -150,7 +151,24 @@ export function useChangeRoomStatus() {
       status: RoomStatus;
       reason?: string;
       cleanedById?: string;
+      blockedUntil?: string;
     }) => (await api.patch<Room>(`/rooms/${id}/status`, input)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.rooms }),
+  });
+}
+
+export function useUpdateBlockedUntil() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      blockedUntil,
+    }: {
+      id: string;
+      blockedUntil: string | null;
+    }) =>
+      (await api.patch<Room>(`/rooms/${id}/blocked-until`, { blockedUntil }))
+        .data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.rooms }),
   });
 }

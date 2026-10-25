@@ -17,6 +17,7 @@ import {
   ChangeRoomStatusDto,
   CreateRoomDto,
   QueryRoomsDto,
+  UpdateBlockedUntilDto,
   UpdateRoomDto,
 } from './dto/room.dto.js';
 import { RoomsService } from './rooms.service.js';
@@ -67,6 +68,17 @@ export class RoomsController {
     @Body() dto: UpdateRoomDto,
   ) {
     return this.rooms.update(actor, id, dto);
+  }
+
+  /** Ajusta la fecha estimada de un bloqueo sin cambiar el estado. */
+  @Patch(':id/blocked-until')
+  @Roles(Role.ADMIN, Role.RECEPTION)
+  updateBlockedUntil(
+    @CurrentUser() actor: AuthUser,
+    @Param('id', ParseUuid) id: string,
+    @Body() dto: UpdateBlockedUntilDto,
+  ) {
+    return this.rooms.updateBlockedUntil(actor, id, dto);
   }
 
   /** Todos los roles; las reglas por rol están en room-status.rules.ts. */

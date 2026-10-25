@@ -24,7 +24,10 @@ export interface Hotel {
 }
 
 export type UpdateHotelInput = Partial<
-  Pick<Hotel, 'name' | 'legalName' | 'taxId' | 'address' | 'phone' | 'email'>
+  Pick<
+    Hotel,
+    'name' | 'legalName' | 'taxId' | 'address' | 'phone' | 'email' | 'timezone'
+  >
 >;
 
 export type UpdateSettingsInput = Partial<
