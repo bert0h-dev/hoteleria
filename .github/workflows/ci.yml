@@ -18,6 +18,29 @@ jobs:
     name: ci
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Base de datos temporal para las pruebas e2e (nunca se usa Neon en CI).
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: hoteleria
+          POSTGRES_PASSWORD: hoteleria
+          POSTGRES_DB: hoteleria_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hoteleria"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://hoteleria:hoteleria@localhost:5432/hoteleria_test
+      DIRECT_URL: postgresql://hoteleria:hoteleria@localhost:5432/hoteleria_test
+      JWT_ACCESS_SECRET: secreto-solo-para-ci-0123456789abcdefghijklmnop
+
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +60,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Migraciones
+        run: npm run prisma:deploy -w backend
 
       - name: Tests
         run: npm test

@@ -2,10 +2,11 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
-  IsOptional,
+  IsNotEmpty,
   IsString,
   Max,
   Min,
+  MinLength,
   validateSync,
 } from 'class-validator';
 
@@ -27,10 +28,21 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN: string = 'http://localhost:5180';
 
-  // Opcional mientras no se conecte Neon; será obligatoria en la Fase 2.
-  @IsOptional()
   @IsString()
-  DATABASE_URL?: string;
+  @IsNotEmpty()
+  DATABASE_URL: string;
+
+  @IsString()
+  @MinLength(32)
+  JWT_ACCESS_SECRET: string;
+
+  /** Duración del access token (formato de `ms`: 15m, 1h, ...). */
+  @IsString()
+  JWT_ACCESS_TTL: string = '15m';
+
+  @IsInt()
+  @Min(1)
+  JWT_REFRESH_TTL_DAYS: number = 7;
 }
 
 export type Env = EnvironmentVariables;

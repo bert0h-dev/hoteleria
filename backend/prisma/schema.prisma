@@ -1,5 +1,6 @@
 // Esquema de la base de datos (PostgreSQL en Neon).
-// Los modelos se definirán a partir de la Fase 2.
+// Convención: modelos y campos en inglés (camelCase); tablas y columnas en snake_case.
+// Las tablas de negocio llevan hotelId para soportar varios hoteles en el futuro.
 
 generator client {
   provider     = "prisma-client"
@@ -9,4 +10,65 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  RECEPTION
+  HOUSEKEEPING
+
+  @@map("role")
+}
+
+model Hotel {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  legalName String?  @map("legal_name")
+  taxId     String?  @map("tax_id")
+  address   String?
+  phone     String?
+  email     String?
+  timezone  String   @default("America/Mexico_City")
+  currency  String   @default("MXN") @db.Char(3)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("hotels")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  hotelId      String    @map("hotel_id") @db.Uuid
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         Role
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  hotel         Hotel          @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  refreshTokens RefreshToken[]
+
+  @@index([hotelId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  userAgent String?   @map("user_agent")
+  ip        String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }

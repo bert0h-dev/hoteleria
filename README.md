@@ -24,7 +24,11 @@ npm install
 cp backend/.env.example backend/.env     # poner las URL de Neon
 cp frontend/.env.example frontend/.env
 
-# 3. Levantar backend y frontend
+# 3. Aplicar migraciones y cargar datos iniciales (hotel + usuario ADMIN)
+npm run prisma:deploy -w backend
+npm run prisma:seed -w backend
+
+# 4. Levantar backend y frontend
 npm run dev
 ```
 
@@ -45,7 +49,9 @@ npm run dev
 | `npm run lint` | Linter (oxlint) en ambos proyectos |
 | `npm run format` | Formatea el código con Prettier |
 | `npm run prisma:migrate -w backend` | Crea y aplica migraciones |
+| `npm run prisma:seed -w backend` | Crea el hotel y el ADMIN inicial (datos de `SEED_*` en `.env`) |
 | `npm run prisma:studio -w backend` | Abre Prisma Studio |
+| `npm test` | Pruebas unitarias y e2e del backend (las e2e usan la base de `DATABASE_URL`) |
 
 ## Plan de desarrollo
 
