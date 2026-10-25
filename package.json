@@ -22,6 +22,7 @@
   "allowScripts": {
     "@scarf/scarf": false,
     "prisma@7.10.1": true,
-    "@prisma/engines@7.10.1": true
+    "@prisma/engines@7.10.1": true,
+    "esbuild@0.28.2": true
   }
 }

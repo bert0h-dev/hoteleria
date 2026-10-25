@@ -1,28 +1,14 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { configureApp } from './app.setup.js';
 import type { Env } from './config/env.validation.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const config = app.get<ConfigService<Env, true>>(ConfigService);
-
-  app.setGlobalPrefix('api');
-  app.enableCors({
-    origin: config.get('CORS_ORIGIN', { infer: true }).split(','),
-    credentials: true,
-  });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-  app.useGlobalFilters(new AllExceptionsFilter());
+  configureApp(app);
 
   const swagger = new DocumentBuilder()
     .setTitle('Hotelería API')
@@ -36,7 +22,9 @@ async function bootstrap() {
     SwaggerModule.createDocument(app, swagger),
   );
 
-  const port = config.get('PORT', { infer: true });
+  const port = app
+    .get<ConfigService<Env, true>>(ConfigService)
+    .get('PORT', { infer: true });
   await app.listen(port);
   Logger.log(
     `API en http://localhost:${port}/api — documentación en /api/docs`,
