@@ -13,22 +13,24 @@ PR separados.
 ## 🔴 Prioridad alta — afecta precios y reservas
 
 ### 1. Impuestos (IVA + ISH)
-- [ ] Configurar en el hotel el **IVA** (16 %) y el **ISH** (Impuesto Sobre
+- [x] Configurar en el hotel el **IVA** (16 %) y el **ISH** (Impuesto Sobre
       Hospedaje estatal, 2 %–5 % según el estado).
-- [ ] Definir si los precios capturados **ya incluyen impuestos** o se suman
+- [x] Definir si los precios capturados **ya incluyen impuestos** o se suman
       encima (opción configurable).
-- [ ] Mostrar el desglose (subtotal, IVA, ISH, total) en tarifas y calculadora.
+- [x] Mostrar el desglose (subtotal, IVA, ISH, total) en tarifas y calculadora.
 
-> **Decisión pendiente:** ¿los precios que captura el hotel ya incluyen IVA e
-> ISH, o se suman encima?
+> **Decidido:** los precios **ya incluyen** IVA e ISH; el sistema solo los
+> desglosa. Valores por defecto: IVA 16 %, ISH 3 % (configurables), niño hasta
+> 12 años. Personas extra: por noche y por día; la semana cuenta como 7 noches;
+> por horas sin cargo.
 
 ### 2. Personas extra
-- [ ] En el tipo de habitación: **ocupación incluida** en el precio (p. ej. 2).
-- [ ] Cargo por **adulto extra** y por **niño extra** por noche.
-- [ ] En la configuración: **edad máxima para considerarse niño**.
+- [x] En el tipo de habitación: **ocupación incluida** en el precio (p. ej. 2).
+- [x] Cargo por **adulto extra** y por **niño extra** por noche.
+- [x] En la configuración: **edad máxima para considerarse niño**.
 
 ### 3. Tope de la tarifa por hora
-- [ ] Opción en la configuración: *si las horas cuestan más que el día
+- [x] Opción en la configuración: *si las horas cuestan más que el día
       completo, cobrar el día*. Con los valores actuales (15 % / 120 %), a partir
       de 8 horas la estancia por horas iguala o supera el día.
 

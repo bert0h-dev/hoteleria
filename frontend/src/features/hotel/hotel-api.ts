@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { PricingSettings } from './pricing';
+import type { PricingSettings, TaxSettings } from './pricing';
 
-export interface HotelSettings extends PricingSettings {
+export interface HotelSettings extends PricingSettings, TaxSettings {
   hotelId: string;
+  childMaxAge: number;
   checkInTime: string;
   checkOutTime: string;
   updatedAt: string;

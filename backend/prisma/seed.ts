@@ -23,6 +23,9 @@ const ROOM_TYPES = [
     maxAdults: 2,
     maxChildren: 0,
     nightlyRate: 850,
+    includedAdults: 2,
+    extraAdultRate: 0,
+    extraChildRate: 0,
     amenities: [Amenity.WIFI, Amenity.AIR_CONDITIONING, Amenity.TV],
   },
   {
@@ -31,6 +34,9 @@ const ROOM_TYPES = [
     maxAdults: 4,
     maxChildren: 2,
     nightlyRate: 1200,
+    includedAdults: 2,
+    extraAdultRate: 250,
+    extraChildRate: 100,
     amenities: [
       Amenity.WIFI,
       Amenity.AIR_CONDITIONING,
@@ -45,6 +51,9 @@ const ROOM_TYPES = [
     maxAdults: 2,
     maxChildren: 2,
     nightlyRate: 2500,
+    includedAdults: 2,
+    extraAdultRate: 0,
+    extraChildRate: 300,
     amenities: [
       Amenity.WIFI,
       Amenity.AIR_CONDITIONING,

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -46,6 +47,10 @@ export class RoomTypesService {
   }
 
   async create(actor: AuthUser, dto: CreateRoomTypeDto) {
+    assertIncludedAdults(
+      dto.includedAdults ?? Math.min(2, dto.maxAdults),
+      dto.maxAdults,
+    );
     try {
       const type = await this.prisma.roomType.create({
         data: {
@@ -55,6 +60,9 @@ export class RoomTypesService {
           maxAdults: dto.maxAdults,
           maxChildren: dto.maxChildren,
           nightlyRate: dto.nightlyRate,
+          includedAdults: dto.includedAdults ?? Math.min(2, dto.maxAdults),
+          extraAdultRate: dto.extraAdultRate,
+          extraChildRate: dto.extraChildRate,
           amenities: dto.amenities,
         },
       });
@@ -65,7 +73,11 @@ export class RoomTypesService {
   }
 
   async update(actor: AuthUser, id: string, dto: UpdateRoomTypeDto) {
-    await this.findOrThrow(actor, id);
+    const current = await this.findOrThrow(actor, id);
+    assertIncludedAdults(
+      dto.includedAdults ?? current.includedAdults,
+      dto.maxAdults ?? current.maxAdults,
+    );
     try {
       const type = await this.prisma.roomType.update({
         where: { id },
@@ -89,6 +101,14 @@ export class RoomTypesService {
 /** Agrega las tarifas calculadas (hora, noche, día, semana) al tipo. */
 function withRates<T extends RoomType>(type: T, settings: PricingSettings) {
   return { ...type, rates: calculateRates(type.nightlyRate, settings) };
+}
+
+function assertIncludedAdults(included: number, maxAdults: number) {
+  if (included > maxAdults) {
+    throw new BadRequestException(
+      'Los adultos incluidos no pueden ser más que la capacidad de adultos',
+    );
+  }
 }
 
 function mapUniqueName(error: unknown): unknown {

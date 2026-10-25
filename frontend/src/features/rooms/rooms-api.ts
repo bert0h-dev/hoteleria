@@ -30,6 +30,9 @@ export interface RoomTypeInput {
   maxAdults: number;
   maxChildren: number;
   nightlyRate: number;
+  includedAdults: number;
+  extraAdultRate: number;
+  extraChildRate: number;
   amenities: Amenity[];
   isActive?: boolean;
 }

@@ -110,16 +110,23 @@ enum Amenity {
 /// Configuración de tarifas y horarios del hotel (una por hotel).
 /// Los porcentajes son enteros: 15 = 15 % del precio por noche.
 model HotelSettings {
-  hotelId           String   @id @map("hotel_id") @db.Uuid
-  hourlyRatePercent Int      @default(15) @map("hourly_rate_percent")
-  minHours          Int      @default(3) @map("min_hours")
-  dayRatePercent    Int      @default(120) @map("day_rate_percent")
-  dayDurationHours  Int      @default(24) @map("day_duration_hours")
-  weekRatePercent   Int      @default(600) @map("week_rate_percent")
+  hotelId            String   @id @map("hotel_id") @db.Uuid
+  hourlyRatePercent  Int      @default(15) @map("hourly_rate_percent")
+  minHours           Int      @default(3) @map("min_hours")
+  dayRatePercent     Int      @default(120) @map("day_rate_percent")
+  dayDurationHours   Int      @default(24) @map("day_duration_hours")
+  weekRatePercent    Int      @default(600) @map("week_rate_percent")
   /// Horario de la modalidad por noche, formato HH:mm.
-  checkInTime       String   @default("15:00") @map("check_in_time") @db.VarChar(5)
-  checkOutTime      String   @default("12:00") @map("check_out_time") @db.VarChar(5)
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  checkInTime        String   @default("15:00") @map("check_in_time") @db.VarChar(5)
+  checkOutTime       String   @default("12:00") @map("check_out_time") @db.VarChar(5)
+  /// Si la estancia por horas cuesta más que el día completo, se cobra el día.
+  capHourlyAtDayRate Boolean  @default(true) @map("cap_hourly_at_day_rate")
+  /// Impuestos (los precios ya los incluyen; solo se desglosan). En %.
+  vatPercent         Float    @default(16) @map("vat_percent")
+  lodgingTaxPercent  Float    @default(3) @map("lodging_tax_percent")
+  /// Edad máxima para considerarse niño.
+  childMaxAge        Int      @default(12) @map("child_max_age")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
@@ -127,18 +134,23 @@ model HotelSettings {
 }
 
 model RoomType {
-  id          String    @id @default(uuid()) @db.Uuid
-  hotelId     String    @map("hotel_id") @db.Uuid
-  name        String
-  description String?
-  maxAdults   Int       @map("max_adults")
-  maxChildren Int       @default(0) @map("max_children")
-  /// Precio base por noche, en pesos enteros.
-  nightlyRate Int       @map("nightly_rate")
-  amenities   Amenity[] @default([])
-  isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  hotelId        String    @map("hotel_id") @db.Uuid
+  name           String
+  description    String?
+  maxAdults      Int       @map("max_adults")
+  maxChildren    Int       @default(0) @map("max_children")
+  /// Precio base por noche, en pesos enteros (impuestos incluidos).
+  nightlyRate    Int       @map("nightly_rate")
+  /// Adultos incluidos en el precio; los demás pagan el cargo extra.
+  includedAdults Int       @default(2) @map("included_adults")
+  /// Cargo por persona extra por noche/día, en pesos enteros.
+  extraAdultRate Int       @default(0) @map("extra_adult_rate")
+  extraChildRate Int       @default(0) @map("extra_child_rate")
+  amenities      Amenity[] @default([])
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   hotel Hotel  @relation(fields: [hotelId], references: [id], onDelete: Restrict)
   rooms Room[]

@@ -55,6 +55,31 @@ export class CreateRoomTypeDto {
   @Max(1_000_000, { message: 'El precio por noche es demasiado alto' })
   nightlyRate: number;
 
+  @ApiPropertyOptional({
+    example: 2,
+    default: 2,
+    description: 'Adultos incluidos en el precio',
+  })
+  @IsOptional()
+  @IsInt({ message: 'Los adultos incluidos deben ser un número entero' })
+  @Min(1, { message: 'El precio debe incluir al menos 1 adulto' })
+  @Max(20, { message: 'Los adultos incluidos no pueden pasar de 20' })
+  includedAdults?: number;
+
+  @ApiPropertyOptional({ example: 250, default: 0 })
+  @IsOptional()
+  @IsInt({ message: 'El cargo por adulto extra debe ser en pesos enteros' })
+  @Min(0, { message: 'El cargo por adulto extra no puede ser negativo' })
+  @Max(100_000, { message: 'El cargo por adulto extra es demasiado alto' })
+  extraAdultRate?: number;
+
+  @ApiPropertyOptional({ example: 100, default: 0 })
+  @IsOptional()
+  @IsInt({ message: 'El cargo por niño extra debe ser en pesos enteros' })
+  @Min(0, { message: 'El cargo por niño extra no puede ser negativo' })
+  @Max(100_000, { message: 'El cargo por niño extra es demasiado alto' })
+  extraChildRate?: number;
+
   @ApiPropertyOptional({ enum: Amenity, enumName: 'Amenity', isArray: true })
   @IsOptional()
   @IsArray({ message: 'Las amenidades deben ser una lista' })

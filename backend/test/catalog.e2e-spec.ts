@@ -242,6 +242,71 @@ describe('Configuración y catálogo de habitaciones (e2e)', () => {
       .expect(200);
   });
 
+  it('configura impuestos, tope por hora y edad de niño', async () => {
+    const res = await as('admin')
+      .patch('/api/hotel/settings', {
+        vatPercent: 16,
+        lodgingTaxPercent: 2.5,
+        childMaxAge: 11,
+        capHourlyAtDayRate: false,
+      })
+      .expect(200);
+    expect(res.body).toMatchObject({
+      vatPercent: 16,
+      lodgingTaxPercent: 2.5,
+      childMaxAge: 11,
+      capHourlyAtDayRate: false,
+    });
+
+    const bad = await as('admin')
+      .patch('/api/hotel/settings', {
+        lodgingTaxPercent: 2.555,
+        childMaxAge: 20,
+      })
+      .expect(400);
+    expect(bad.body.message).toEqual(
+      expect.arrayContaining([
+        'El ISH debe ser un número con máximo 2 decimales',
+        'La edad de niño no puede pasar de 17 años',
+      ]),
+    );
+  });
+
+  it('valida los adultos incluidos contra la capacidad', async () => {
+    const res = await as('admin')
+      .post('/api/room-types', {
+        name: 'Familiar',
+        maxAdults: 4,
+        includedAdults: 2,
+        extraAdultRate: 250,
+        extraChildRate: 100,
+        nightlyRate: 1500,
+      })
+      .expect(201);
+    expect(res.body).toMatchObject({
+      includedAdults: 2,
+      extraAdultRate: 250,
+      extraChildRate: 100,
+    });
+
+    const bad = await as('admin')
+      .patch(`/api/room-types/${res.body.id}`, { maxAdults: 1 })
+      .expect(400);
+    expect(bad.body.message).toBe(
+      'Los adultos incluidos no pueden ser más que la capacidad de adultos',
+    );
+
+    // Con capacidad de 1 y sin indicar incluidos, se ajusta solo a 1.
+    const single = await as('admin')
+      .post('/api/room-types', {
+        name: 'Individual',
+        maxAdults: 1,
+        nightlyRate: 600,
+      })
+      .expect(201);
+    expect(single.body.includedAdults).toBe(1);
+  });
+
   it('resume las habitaciones por estado', async () => {
     const res = await as('limpieza').get('/api/rooms/summary').expect(200);
     expect(res.body.total).toBe(1);
