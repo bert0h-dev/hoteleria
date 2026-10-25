@@ -5,7 +5,7 @@ export function LogoMark({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'grid size-9 place-items-center rounded-xl bg-linear-to-br from-violet-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-1 ring-white/20',
+        'grid size-9 place-items-center rounded-xl bg-linear-to-br from-brand-from to-brand-to text-white shadow-lg shadow-brand-from/30 ring-1 ring-white/20',
         className,
       )}
     >

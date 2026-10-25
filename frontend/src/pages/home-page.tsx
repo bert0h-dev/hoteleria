@@ -74,16 +74,16 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       {/* Bienvenida */}
-      <section className="relative overflow-hidden rounded-2xl bg-linear-to-br from-violet-600 via-indigo-600 to-indigo-800 p-6 text-white shadow-xl shadow-indigo-500/20 sm:p-8">
-        <div className="absolute -top-20 -right-10 size-72 rounded-full bg-fuchsia-400/30 blur-3xl" />
-        <div className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-sky-400/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-2xl bg-linear-to-br from-brand-from via-brand-via to-brand-to p-6 text-white shadow-xl shadow-brand-from/20 sm:p-8">
+        <div className="absolute -top-20 -right-10 size-72 rounded-full bg-brand-glow-1/30 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-brand-glow-2/25 blur-3xl" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <p className="text-sm text-indigo-100/80 capitalize">{today}</p>
+            <p className="text-sm text-white/80 capitalize">{today}</p>
             <h1 className="text-3xl font-semibold tracking-tight">
               {salutation}, {firstName}
             </h1>
-            <p className="max-w-xl text-indigo-100/80">
+            <p className="max-w-xl text-white/80">
               Has iniciado sesión como{' '}
               <span className="font-medium text-white">
                 {user && ROLES[user.role].label}
@@ -94,7 +94,7 @@ export function HomePage() {
           {hasRole('ADMIN') && (
             <Button
               render={<Link to="/usuarios" />}
-              className="bg-white text-indigo-700 hover:bg-indigo-50"
+              className="bg-white text-brand-via hover:bg-white/90"
             >
               Administrar usuarios
             </Button>

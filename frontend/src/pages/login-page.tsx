@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { z } from 'zod';
 import { Logo, LogoMark } from '@/components/logo';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemePicker } from '@/features/theme/theme-picker';
 import { Button } from '@/components/ui/button';
 import {
   Field,
@@ -89,10 +89,10 @@ export function LoginPage() {
   return (
     <div className="grid min-h-svh bg-background lg:grid-cols-[1.1fr_1fr]">
       {/* Panel de marca */}
-      <aside className="relative hidden overflow-hidden bg-indigo-950 p-12 text-white lg:flex lg:flex-col">
-        <div className="absolute inset-0 bg-linear-to-br from-violet-600 via-indigo-700 to-indigo-950" />
-        <div className="absolute -top-32 -left-24 size-[28rem] rounded-full bg-fuchsia-500/40 blur-3xl" />
-        <div className="absolute -right-20 bottom-0 size-[32rem] rounded-full bg-sky-500/30 blur-3xl" />
+      <aside className="relative hidden overflow-hidden bg-brand-deep p-12 text-white lg:flex lg:flex-col">
+        <div className="absolute inset-0 bg-linear-to-br from-brand-from via-brand-via to-brand-deep" />
+        <div className="absolute -top-32 -left-24 size-[28rem] rounded-full bg-brand-glow-1/40 blur-3xl" />
+        <div className="absolute -right-20 bottom-0 size-[32rem] rounded-full bg-brand-glow-2/30 blur-3xl" />
         <div
           className="absolute inset-0 opacity-[0.15] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]"
           style={{
@@ -117,11 +117,11 @@ export function LoginPage() {
             </span>
             <h1 className="text-4xl leading-tight font-semibold tracking-tight xl:text-5xl">
               Tu hotel, en orden y{' '}
-              <span className="bg-linear-to-r from-fuchsia-200 to-sky-200 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-white to-white/60 bg-clip-text text-transparent">
                 bajo control.
               </span>
             </h1>
-            <p className="text-lg text-indigo-100/80">
+            <p className="text-lg text-white/80">
               Recepción, reservas, habitaciones y cobros desde un mismo panel.
             </p>
           </div>
@@ -134,14 +134,14 @@ export function LoginPage() {
                 </div>
                 <div>
                   <p className="font-medium">{title}</p>
-                  <p className="text-sm text-indigo-100/70">{text}</p>
+                  <p className="text-sm text-white/70">{text}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="relative text-sm text-indigo-100/60">
+        <p className="relative text-sm text-white/60">
           © {CURRENT_YEAR} Hotelería
         </p>
       </aside>
@@ -153,7 +153,7 @@ export function LoginPage() {
             <Logo />
           </div>
           <div className="ml-auto">
-            <ThemeToggle />
+            <ThemePicker />
           </div>
         </div>
 
@@ -232,7 +232,7 @@ export function LoginPage() {
                 type="submit"
                 size="lg"
                 disabled={isSubmitting}
-                className="group h-11 w-full bg-linear-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/25 hover:from-violet-500 hover:to-indigo-500"
+                className="group h-11 w-full bg-linear-to-r from-brand-from to-brand-to text-white shadow-lg shadow-brand-from/25 hover:brightness-110"
               >
                 {isSubmitting ? (
                   <>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router';
 import { Menu } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemePicker } from '@/features/theme/theme-picker';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -27,7 +27,7 @@ export function MainLayout() {
         <div className="flex-1 overflow-y-auto px-3 py-4">
           <SidebarNav />
         </div>
-        <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-violet-500/10 to-indigo-500/5 p-4">
+        <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
           <p className="text-sm font-medium">Fase 2 de 9</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Pronto: habitaciones, reservas y huéspedes.
@@ -67,7 +67,7 @@ export function MainLayout() {
             <Logo />
           </div>
           <div className="ml-auto flex items-center gap-1">
-            <ThemeToggle />
+            <ThemePicker />
             <UserMenu />
           </div>
         </header>
