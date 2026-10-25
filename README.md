@@ -51,6 +51,7 @@ npm run dev
 | `npm run prisma:migrate -w backend` | Crea y aplica migraciones |
 | `npm run prisma:seed -w backend` | Crea el hotel y el ADMIN inicial (datos de `SEED_*` en `.env`) |
 | `npm run prisma:studio -w backend` | Abre Prisma Studio |
+| `npm run themes -w frontend` | Regenera los temas de color (`frontend/src/styles/themes.css`) y verifica su contraste |
 | `npm test` | Pruebas unitarias y e2e del backend (las e2e usan la base de `DATABASE_URL`) |
 
 ## Plan de desarrollo

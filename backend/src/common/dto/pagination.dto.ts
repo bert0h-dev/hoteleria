@@ -6,15 +6,15 @@ export class PaginationDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'La página debe ser un número entero' })
+  @Min(1, { message: 'La página debe ser 1 o mayor' })
   page: number = 1;
 
   @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 100 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
+  @IsInt({ message: 'El límite debe ser un número entero' })
+  @Min(1, { message: 'El límite debe ser 1 o mayor' })
+  @Max(100, { message: 'El límite no puede pasar de 100' })
   limit: number = 20;
 }

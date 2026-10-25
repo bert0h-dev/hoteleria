@@ -5,6 +5,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hotelería</title>
+    <script>
+      // Aplica el tema de color guardado antes de pintar (evita parpadeo).
+      try {
+        var t = localStorage.getItem('hoteleria-color-theme');
+        document.documentElement.dataset.theme =
+          /^(indigo|emerald|ruby|ocean|graphite|amber|orchid|midnight)$/.test(t) ? t : 'indigo';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'indigo';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
