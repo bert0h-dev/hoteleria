@@ -33,7 +33,11 @@ model Hotel {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[]
+  users      User[]
+  settings   HotelSettings?
+  roomTypes  RoomType[]
+  rooms      Room[]
+  statusLogs RoomStatusLog[]
 
   @@map("hotels")
 }
@@ -50,8 +54,11 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  hotel         Hotel          @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  hotel         Hotel           @relation(fields: [hotelId], references: [id], onDelete: Restrict)
   refreshTokens RefreshToken[]
+  statusChanges RoomStatusLog[] @relation("StatusChangedBy")
+  cleanings     RoomStatusLog[] @relation("CleanedBy")
+  roomsCleaned  Room[]          @relation("LastCleanedBy")
 
   @@index([hotelId])
   @@map("users")
@@ -71,4 +78,120 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  MAINTENANCE
+  OUT_OF_SERVICE
+
+  @@map("room_status")
+}
+
+enum Amenity {
+  WIFI
+  AIR_CONDITIONING
+  TV
+  MINIBAR
+  JACUZZI
+  SEA_VIEW
+  BALCONY
+  SAFE
+  COFFEE_MAKER
+  WORKSPACE
+  PARKING
+  PET_FRIENDLY
+
+  @@map("amenity")
+}
+
+/// Configuración de tarifas y horarios del hotel (una por hotel).
+/// Los porcentajes son enteros: 15 = 15 % del precio por noche.
+model HotelSettings {
+  hotelId           String   @id @map("hotel_id") @db.Uuid
+  hourlyRatePercent Int      @default(15) @map("hourly_rate_percent")
+  minHours          Int      @default(3) @map("min_hours")
+  dayRatePercent    Int      @default(120) @map("day_rate_percent")
+  dayDurationHours  Int      @default(24) @map("day_duration_hours")
+  weekRatePercent   Int      @default(600) @map("week_rate_percent")
+  /// Horario de la modalidad por noche, formato HH:mm.
+  checkInTime       String   @default("15:00") @map("check_in_time") @db.VarChar(5)
+  checkOutTime      String   @default("12:00") @map("check_out_time") @db.VarChar(5)
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@map("hotel_settings")
+}
+
+model RoomType {
+  id          String    @id @default(uuid()) @db.Uuid
+  hotelId     String    @map("hotel_id") @db.Uuid
+  name        String
+  description String?
+  maxAdults   Int       @map("max_adults")
+  maxChildren Int       @default(0) @map("max_children")
+  /// Precio base por noche, en pesos enteros.
+  nightlyRate Int       @map("nightly_rate")
+  amenities   Amenity[] @default([])
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  hotel Hotel  @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  rooms Room[]
+
+  @@unique([hotelId, name])
+  @@map("room_types")
+}
+
+model Room {
+  id              String     @id @default(uuid()) @db.Uuid
+  hotelId         String     @map("hotel_id") @db.Uuid
+  roomTypeId      String     @map("room_type_id") @db.Uuid
+  number          String
+  floor           Int
+  status          RoomStatus @default(AVAILABLE)
+  notes           String?
+  isActive        Boolean    @default(true) @map("is_active")
+  lastCleanedAt   DateTime?  @map("last_cleaned_at")
+  lastCleanedById String?    @map("last_cleaned_by_id") @db.Uuid
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  hotel         Hotel           @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  roomType      RoomType        @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  lastCleanedBy User?           @relation("LastCleanedBy", fields: [lastCleanedById], references: [id], onDelete: SetNull)
+  statusLogs    RoomStatusLog[]
+
+  @@unique([hotelId, number])
+  @@index([hotelId, status])
+  @@index([roomTypeId])
+  @@map("rooms")
+}
+
+/// Historial de cambios de estado. Si el cambio termina una limpieza
+/// (CLEANING → AVAILABLE), guarda quién limpió y cuándo.
+model RoomStatusLog {
+  id          String     @id @default(uuid()) @db.Uuid
+  hotelId     String     @map("hotel_id") @db.Uuid
+  roomId      String     @map("room_id") @db.Uuid
+  fromStatus  RoomStatus @map("from_status")
+  toStatus    RoomStatus @map("to_status")
+  reason      String?
+  changedById String     @map("changed_by_id") @db.Uuid
+  cleanedById String?    @map("cleaned_by_id") @db.Uuid
+  cleanedAt   DateTime?  @map("cleaned_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  hotel     Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  room      Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  changedBy User  @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+  cleanedBy User? @relation("CleanedBy", fields: [cleanedById], references: [id], onDelete: SetNull)
+
+  @@index([roomId, createdAt])
+  @@index([hotelId, cleanedAt])
+  @@map("room_status_logs")
 }
