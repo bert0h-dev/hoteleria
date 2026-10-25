@@ -6,6 +6,9 @@ import { validateEnv } from './config/env.validation.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { HotelModule } from './modules/hotel/hotel.module.js';
+import { RoomTypesModule } from './modules/room-types/room-types.module.js';
+import { RoomsModule } from './modules/rooms/rooms.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -20,6 +23,9 @@ import { UsersModule } from './modules/users/users.module.js';
     PrismaModule,
     AuthModule,
     UsersModule,
+    HotelModule,
+    RoomTypesModule,
+    RoomsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

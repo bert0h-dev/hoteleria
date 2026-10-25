@@ -7,19 +7,13 @@ import {
 import { hash } from '@node-rs/argon2';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import type { Paginated } from '../../common/types/paginated.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
 import type { QueryUsersDto } from './dto/query-users.dto.js';
 import type { UpdateUserDto } from './dto/update-user.dto.js';
 import { userSelect, type PublicUser } from './user.select.js';
-
-export interface Paginated<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-}
 
 /** Gestión de usuarios, siempre limitada al hotel del usuario autenticado. */
 @Injectable()

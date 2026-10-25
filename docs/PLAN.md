@@ -20,6 +20,8 @@ en las tablas principales).
   - [x] Backend: esquema, migración `init`, seed, auth JWT + refresh token rotativo, API de usuarios.
   - [x] Frontend: login, rutas protegidas, administración de usuarios, modo oscuro.
 - [ ] **Fase 3 — Catálogo:** tipos de habitación, habitaciones, tarifas y estados (libre, ocupada, limpieza, mantenimiento).
+  - [x] Backend: configuración de tarifas del hotel (hora 15 %, día 120 %, semana 6× por bloques, mínimo de horas, duración del día, horario de noche), tipos, habitaciones, estados con historial y registro de quién limpió.
+  - [ ] Frontend: configuración, tipos de habitación y tablero de habitaciones.
 - [ ] **Fase 4 — Huéspedes:** registro y búsqueda.
 - [ ] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.
 - [ ] **Fase 6 — Check-in / Check-out.**
