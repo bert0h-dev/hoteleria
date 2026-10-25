@@ -11,7 +11,7 @@ export class LoginDto {
   email: string;
 
   @ApiProperty({ example: 'a1234' })
-  @IsString()
+  @IsString({ message: 'La contraseña debe ser texto' })
   @MinLength(1, { message: 'La contraseña es obligatoria' })
   password: string;
 }

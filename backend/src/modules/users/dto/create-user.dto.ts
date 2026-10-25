@@ -17,9 +17,9 @@ export class CreateUserDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
-  @IsString()
+  @IsString({ message: 'El nombre debe ser texto' })
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  @MaxLength(120)
+  @MaxLength(120, { message: 'El nombre no puede pasar de 120 caracteres' })
   name: string;
 
   @ApiProperty({ example: 'ana@mihotel.com' })
@@ -30,11 +30,13 @@ export class CreateUserDto {
   email: string;
 
   @ApiProperty({ minLength: PASSWORD_MIN_LENGTH })
-  @IsString()
+  @IsString({ message: 'La contraseña debe ser texto' })
   @MinLength(PASSWORD_MIN_LENGTH, {
     message: `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`,
   })
-  @MaxLength(128)
+  @MaxLength(128, {
+    message: 'La contraseña no puede pasar de 128 caracteres',
+  })
   password: string;
 
   @ApiProperty({ enum: Role, enumName: 'Role' })

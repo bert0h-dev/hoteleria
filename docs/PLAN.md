@@ -16,9 +16,9 @@ en las tablas principales).
 ## Fases
 
 - [x] **Fase 1 — Estructura:** monorepo con npm workspaces, backend y frontend base, Prisma configurado, endpoint `/api/health`.
-- [ ] **Fase 2 — Autenticación y usuarios:** esquema principal en Neon (incluye `Hotel`), login, roles y permisos.
+- [x] **Fase 2 — Autenticación y usuarios:** esquema principal en Neon (incluye `Hotel`), login, roles y permisos.
   - [x] Backend: esquema, migración `init`, seed, auth JWT + refresh token rotativo, API de usuarios.
-  - [ ] Frontend: login, rutas protegidas, administración de usuarios.
+  - [x] Frontend: login, rutas protegidas, administración de usuarios, modo oscuro.
 - [ ] **Fase 3 — Catálogo:** tipos de habitación, habitaciones, tarifas y estados (libre, ocupada, limpieza, mantenimiento).
 - [ ] **Fase 4 — Huéspedes:** registro y búsqueda.
 - [ ] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.

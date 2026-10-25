@@ -7,12 +7,12 @@ import { PaginationDto } from '../../../common/dto/pagination.dto.js';
 export class QueryUsersDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Busca por nombre o correo' })
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La búsqueda debe ser texto' })
   search?: string;
 
   @ApiPropertyOptional({ enum: Role, enumName: 'Role' })
   @IsOptional()
-  @IsEnum(Role)
+  @IsEnum(Role, { message: 'El rol no es válido' })
   role?: Role;
 
   @ApiPropertyOptional()
@@ -20,6 +20,6 @@ export class QueryUsersDto extends PaginationDto {
   @Transform(({ value }: { value: unknown }) =>
     value === 'true' ? true : value === 'false' ? false : value,
   )
-  @IsBoolean()
+  @IsBoolean({ message: 'El estado debe ser true o false' })
   isActive?: boolean;
 }

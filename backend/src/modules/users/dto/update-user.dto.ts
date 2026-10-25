@@ -7,6 +7,6 @@ export class UpdateUserDto extends PartialType(
 ) {
   @ApiPropertyOptional({ description: 'false desactiva al usuario' })
   @IsOptional()
-  @IsBoolean()
+  @IsBoolean({ message: 'El estado debe ser verdadero o falso' })
   isActive?: boolean;
 }

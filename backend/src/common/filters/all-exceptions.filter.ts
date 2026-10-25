@@ -8,7 +8,14 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-/** Da un formato uniforme a todas las respuestas de error de la API. */
+/** Mensajes en español para los errores que genera el propio framework. */
+const FRAMEWORK_MESSAGES: Partial<Record<number, string>> = {
+  [HttpStatus.TOO_MANY_REQUESTS]:
+    'Demasiados intentos. Espera un momento e inténtalo de nuevo',
+  [HttpStatus.PAYLOAD_TOO_LARGE]: 'La petición es demasiado grande',
+};
+
+/** Da un formato uniforme (y en español) a todas las respuestas de error. */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -31,6 +38,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? body
           : ((body as { message?: string | string[] }).message ??
             exception.message);
+      message = translateFrameworkMessage(status, message, req);
     } else {
       this.logger.error(exception);
     }
@@ -42,4 +50,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     });
   }
+}
+
+function translateFrameworkMessage(
+  status: number,
+  message: string | string[],
+  req: Request,
+): string | string[] {
+  if (Array.isArray(message)) return message;
+  if (status === 404 && message.startsWith('Cannot ')) {
+    return `Ruta no encontrada: ${req.method} ${req.originalUrl}`;
+  }
+  // body-parser: JSON mal formado.
+  if (status === 400 && /JSON|Unexpected token/i.test(message)) {
+    return 'El cuerpo de la petición no es un JSON válido';
+  }
+  return FRAMEWORK_MESSAGES[status] ?? message;
 }

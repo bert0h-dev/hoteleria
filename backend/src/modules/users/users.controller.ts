@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -14,6 +13,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../generated/prisma/enums.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
+import { ParseUuid } from '../../common/validation/validation-messages.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
@@ -34,10 +34,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(
-    @CurrentUser() actor: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  findOne(@CurrentUser() actor: AuthUser, @Param('id', ParseUuid) id: string) {
     return this.users.findOne(actor, id);
   }
 
@@ -49,7 +46,7 @@ export class UsersController {
   @Patch(':id')
   update(
     @CurrentUser() actor: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseUuid) id: string,
     @Body() dto: UpdateUserDto,
   ) {
     return this.users.update(actor, id, dto);
@@ -59,7 +56,7 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   changePassword(
     @CurrentUser() actor: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseUuid) id: string,
     @Body() dto: ChangePasswordDto,
   ) {
     return this.users.changePassword(actor, id, dto.password);

@@ -2,6 +2,7 @@ import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { validationExceptionFactory } from './common/validation/validation-messages.js';
 import type { Env } from './config/env.validation.js';
 
 /** Configuración común de la app (la usan main.ts y las pruebas e2e). */
@@ -19,6 +20,9 @@ export function configureApp(app: INestApplication): void {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      // Un solo mensaje por campo, en español.
+      stopAtFirstError: true,
+      exceptionFactory: validationExceptionFactory,
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
