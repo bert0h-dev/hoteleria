@@ -22,6 +22,7 @@ en las tablas principales).
 - [x] **Fase 3 — Catálogo:** tipos de habitación, habitaciones, tarifas y estados (libre, ocupada, limpieza, mantenimiento).
   - [x] Backend: configuración de tarifas del hotel (hora 15 %, día 120 %, semana 6× por bloques, mínimo de horas, duración del día, horario de noche), tipos, habitaciones, estados con historial y registro de quién limpió.
   - [x] Frontend: configuración con calculadora en vivo, tipos y tarifas, tablero por piso con cambio de estado e historial.
+- [ ] **Ajustes antes de la Fase 4:** impuestos, personas extra, tope por hora, mantenimiento con fechas, zona horaria y Mi perfil. Detalle en [PLAN-TRABAJO-ACTUAL.md](PLAN-TRABAJO-ACTUAL.md).
 - [ ] **Fase 4 — Huéspedes:** registro y búsqueda.
 - [ ] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.
 - [ ] **Fase 6 — Check-in / Check-out.**
