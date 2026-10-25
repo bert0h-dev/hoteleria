@@ -1,0 +1,12 @@
+// Esquema de la base de datos (PostgreSQL en Neon).
+// Los modelos se definirán a partir de la Fase 2.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
