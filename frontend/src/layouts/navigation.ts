@@ -2,6 +2,7 @@ import {
   BedDouble,
   CalendarDays,
   LayoutDashboard,
+  Settings,
   Users,
   UsersRound,
   type LucideIcon,
@@ -26,12 +27,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Operación',
     items: [
-      {
-        to: '/habitaciones',
-        label: 'Habitaciones',
-        icon: BedDouble,
-        soon: true,
-      },
+      { to: '/habitaciones', label: 'Habitaciones', icon: BedDouble },
       { to: '/reservas', label: 'Reservas', icon: CalendarDays, soon: true },
       { to: '/huespedes', label: 'Huéspedes', icon: UsersRound, soon: true },
     ],
@@ -40,6 +36,12 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Administración',
     items: [
       { to: '/usuarios', label: 'Usuarios', icon: Users, roles: ['ADMIN'] },
+      {
+        to: '/configuracion',
+        label: 'Configuración',
+        icon: Settings,
+        roles: ['ADMIN'],
+      },
     ],
   },
 ];

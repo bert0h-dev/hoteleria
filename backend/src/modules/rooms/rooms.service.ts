@@ -19,6 +19,7 @@ import type {
 import {
   canChangeStatus,
   completesCleaning,
+  requiresReason,
   ROOM_STATUS_LABELS,
 } from './room-status.rules.js';
 
@@ -124,6 +125,12 @@ export class RoomsService {
     if (!canChangeStatus(actor.role, from, to)) {
       throw new ForbiddenException(
         `Tu rol no puede cambiar una habitación de «${ROOM_STATUS_LABELS[from]}» a «${ROOM_STATUS_LABELS[to]}»`,
+      );
+    }
+
+    if (requiresReason(to) && !dto.reason) {
+      throw new BadRequestException(
+        `Indica el motivo para pasar la habitación a «${ROOM_STATUS_LABELS[to]}»`,
       );
     }
 

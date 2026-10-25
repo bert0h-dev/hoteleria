@@ -59,6 +59,7 @@ import { UserFormDialog } from '@/features/users/user-form-dialog';
 import { useUpdateUser, useUsers } from '@/features/users/users-api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { getErrorMessage } from '@/lib/api';
+import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
@@ -72,19 +73,6 @@ const STATUS_FILTERS = [
   { value: 'active', label: 'Activos' },
   { value: 'inactive', label: 'Inactivos' },
 ];
-
-const relativeTime = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
-
-function formatLastLogin(iso: string | null) {
-  if (!iso) return 'Nunca';
-  const minutes = Math.round((new Date(iso).getTime() - Date.now()) / 60_000);
-  if (Math.abs(minutes) < 60) return relativeTime.format(minutes, 'minute');
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return relativeTime.format(hours, 'hour');
-  const days = Math.round(hours / 24);
-  if (Math.abs(days) < 30) return relativeTime.format(days, 'day');
-  return new Date(iso).toLocaleDateString('es-MX', { dateStyle: 'medium' });
-}
 
 export function UsersPage() {
   const { user: me } = useAuth();
@@ -278,7 +266,7 @@ export function UsersPage() {
                       </span>
                     </TableCell>
                     <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
-                      {formatLastLogin(user.lastLoginAt)}
+                      {formatRelative(user.lastLoginAt)}
                     </TableCell>
                     <TableCell className="pr-4">
                       <DropdownMenu>
