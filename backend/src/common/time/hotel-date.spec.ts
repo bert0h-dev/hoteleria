@@ -4,6 +4,8 @@ import {
   isValidTimeZone,
   todayIn,
   toDbDate,
+  zonedToUtc,
+  daysBetween,
 } from './hotel-date.js';
 
 describe('fechas en la zona horaria del hotel', () => {
@@ -39,5 +41,25 @@ describe('fechas en la zona horaria del hotel', () => {
     expect(isBlockOverdue(until, 'America/Cancun', now)).toBe(true);
     // Sin fecha (indefinido) nunca vence.
     expect(isBlockOverdue(null, 'America/Cancun', now)).toBe(false);
+  });
+});
+
+describe('zonedToUtc y daysBetween', () => {
+  it('convierte hora local del hotel a UTC', () => {
+    expect(
+      zonedToUtc('2026-10-28', '15:00', 'America/Cancun').toISOString(),
+    ).toBe('2026-10-28T20:00:00.000Z');
+    expect(
+      zonedToUtc('2026-10-28', '15:00', 'America/Mexico_City').toISOString(),
+    ).toBe('2026-10-28T21:00:00.000Z');
+    // Tijuana tiene horario de verano: en julio es UTC-7.
+    expect(
+      zonedToUtc('2026-07-10', '12:00', 'America/Tijuana').toISOString(),
+    ).toBe('2026-07-10T19:00:00.000Z');
+  });
+
+  it('cuenta días de calendario', () => {
+    expect(daysBetween('2026-10-28', '2026-10-31')).toBe(3);
+    expect(daysBetween('2026-12-30', '2027-01-02')).toBe(3);
   });
 });
