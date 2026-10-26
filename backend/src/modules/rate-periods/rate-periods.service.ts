@@ -7,6 +7,7 @@ import type { RatePeriod } from '../../generated/prisma/client.js';
 import { fromDbDate, toDbDate } from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService, changedFields } from '../audit/audit.service.js';
 import type { SeasonRule, WeekdayRule } from '../pricing/pricing.js';
 import type {
   CreateRatePeriodDto,
@@ -15,7 +16,10 @@ import type {
 
 @Injectable()
 export class RatePeriodsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async findAll(actor: AuthUser) {
     const rows = await this.prisma.ratePeriod.findMany({
@@ -39,6 +43,12 @@ export class RatePeriodsService {
         isActive: dto.isActive,
       },
     });
+    await this.audit.log(actor, {
+      action: 'rate_period.create',
+      entity: 'rate_period',
+      entityId: row.id,
+      summary: `Creó la temporada «${row.name}» (${dto.startDate} a ${dto.endDate}, ${row.adjustmentPercent} %)`,
+    });
     return present(row);
   }
 
@@ -60,12 +70,28 @@ export class RatePeriodsService {
         isActive: dto.isActive,
       },
     });
+    const changes = changedFields(present(current), dto);
+    if (Object.keys(changes).length) {
+      await this.audit.log(actor, {
+        action: 'rate_period.update',
+        entity: 'rate_period',
+        entityId: id,
+        summary: `Modificó la temporada «${row.name}» (${Object.keys(changes).join(', ')})`,
+        data: changes as never,
+      });
+    }
     return present(row);
   }
 
   async remove(actor: AuthUser, id: string) {
-    await this.findRow(actor, id);
+    const current = await this.findRow(actor, id);
     await this.prisma.ratePeriod.delete({ where: { id } });
+    await this.audit.log(actor, {
+      action: 'rate_period.delete',
+      entity: 'rate_period',
+      entityId: id,
+      summary: `Eliminó la temporada «${current.name}»`,
+    });
   }
 
   /**

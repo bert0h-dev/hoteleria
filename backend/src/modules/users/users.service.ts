@@ -10,6 +10,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import { toDbDate } from '../../common/time/hotel-date.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService, changedFields } from '../audit/audit.service.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
 import type { QueryUsersDto } from './dto/query-users.dto.js';
@@ -22,6 +23,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
+    private readonly audit: AuditService,
   ) {}
 
   async findAll(
@@ -65,7 +67,7 @@ export class UsersService {
 
   async create(actor: AuthUser, dto: CreateUserDto): Promise<PublicUser> {
     try {
-      return await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           hotelId: actor.hotelId,
           name: dto.name,
@@ -78,6 +80,13 @@ export class UsersService {
         },
         select: userSelect,
       });
+      await this.audit.log(actor, {
+        action: 'user.create',
+        entity: 'user',
+        entityId: user.id,
+        summary: `Creó el usuario ${user.name} (${user.email}) con rol ${user.role}`,
+      });
+      return user;
     } catch (error) {
       throw mapUniqueEmail(error);
     }
@@ -137,6 +146,16 @@ export class UsersService {
         throw mapUniqueEmail(error);
       });
     if (dto.isActive === false) await this.auth.revokeAll(id);
+    const changes = changedFields(current, dto);
+    if (Object.keys(changes).length) {
+      await this.audit.log(actor, {
+        action: 'user.update',
+        entity: 'user',
+        entityId: id,
+        summary: `Modificó el usuario ${user.name} (${Object.keys(changes).join(', ')})`,
+        data: changes as never,
+      });
+    }
     return user;
   }
 

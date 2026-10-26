@@ -6,6 +6,7 @@ import {
 import { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
+import type { AuditService } from '../audit/audit.service.js';
 import type { AuthService } from '../auth/auth.service.js';
 import { UsersService } from './users.service.js';
 
@@ -15,14 +16,16 @@ function setup() {
   const prisma = {
     user: {
       findFirst: vi.fn().mockResolvedValue({ id: 'u2', hotelId: 'h1' }),
-      create: vi.fn(),
+      create: vi.fn().mockResolvedValue({ id: 'u3', name: 'Nuevo' }),
       update: vi.fn().mockResolvedValue({ id: 'u2' }),
     },
   };
   const auth = { revokeAll: vi.fn() };
+  const audit = { log: vi.fn() };
   const service = new UsersService(
     prisma as unknown as PrismaService,
     auth as unknown as AuthService,
+    audit as unknown as AuditService,
   );
   return { service, prisma, auth };
 }

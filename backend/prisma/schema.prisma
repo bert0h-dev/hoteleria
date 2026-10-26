@@ -47,6 +47,8 @@ model Hotel {
   chargeConcepts ChargeConcept[]
   folioCharges   FolioCharge[]
   payments       Payment[]
+  cashShifts     CashShift[]
+  auditLogs      AuditLog[]
 
   @@map("hotels")
 }
@@ -90,6 +92,10 @@ model User {
   stayChargesResolved    StayCharge[]    @relation("StayChargeResolvedBy")
   stayChargesAuthorized  StayCharge[]    @relation("StayChargeAuthorizedBy")
   balancesAuthorized     Reservation[]   @relation("BalanceAuthorizedBy")
+  cashShifts             CashShift[]     @relation("CashShiftOwner")
+  cashShiftsClosed       CashShift[]     @relation("CashShiftClosedBy")
+  auditLogs              AuditLog[]      @relation("AuditActor")
+  auditAuthorized        AuditLog[]      @relation("AuditAuthorizedBy")
   cleanings              RoomStatusLog[] @relation("CleanedBy")
   roomsCleaned           Room[]          @relation("LastCleanedBy")
 
@@ -638,6 +644,8 @@ model Payment {
   reference      String?
   /// Anticipo antes de la llegada.
   isDeposit      Boolean       @default(false) @map("is_deposit")
+  /// Turno de caja en el que se cobró.
+  shiftId        String?       @map("shift_id") @db.Uuid
   notes          String?
   createdById    String        @map("created_by_id") @db.Uuid
   voidedAt       DateTime?     @map("voided_at")
@@ -649,9 +657,65 @@ model Payment {
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   createdBy   User        @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   voidedBy    User?       @relation("PaymentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  shift       CashShift?  @relation(fields: [shiftId], references: [id], onDelete: Restrict)
 
   @@unique([hotelId, receiptNumber])
   @@index([reservationId])
   @@index([hotelId, createdAt])
   @@map("payments")
+}
+
+/// Turno de caja de un usuario: fondo inicial, cobros y corte.
+model CashShift {
+  id               String    @id @default(uuid()) @db.Uuid
+  hotelId          String    @map("hotel_id") @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  openedAt         DateTime  @default(now()) @map("opened_at")
+  /// Fondo inicial (centavos).
+  openingMxnCents  Int       @default(0) @map("opening_mxn_cents")
+  openingUsdCents  Int       @default(0) @map("opening_usd_cents")
+  closedAt         DateTime? @map("closed_at")
+  closedById       String?   @map("closed_by_id") @db.Uuid
+  /// Efectivo esperado y contado al cerrar (centavos).
+  expectedMxnCents Int?      @map("expected_mxn_cents")
+  expectedUsdCents Int?      @map("expected_usd_cents")
+  countedMxnCents  Int?      @map("counted_mxn_cents")
+  countedUsdCents  Int?      @map("counted_usd_cents")
+  /// Totales por método al cerrar (para el reporte).
+  summary          Json?
+  closingNotes     String?   @map("closing_notes")
+
+  hotel    Hotel     @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  user     User      @relation("CashShiftOwner", fields: [userId], references: [id], onDelete: Restrict)
+  closedBy User?     @relation("CashShiftClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  payments Payment[]
+
+  @@index([hotelId, openedAt])
+  @@index([userId, closedAt])
+  @@map("cash_shifts")
+}
+
+/// Bitácora de auditoría: quién hizo qué, cuándo y quién lo autorizó.
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  hotelId        String   @map("hotel_id") @db.Uuid
+  actorId        String   @map("actor_id") @db.Uuid
+  /// Código del evento, p. ej. "folio.discount".
+  action         String
+  /// Tipo de registro afectado, p. ej. "reservation".
+  entity         String
+  entityId       String?  @map("entity_id")
+  /// Texto legible en español.
+  summary        String
+  data           Json?
+  authorizedById String?  @map("authorized_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  hotel        Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  actor        User  @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  authorizedBy User? @relation("AuditAuthorizedBy", fields: [authorizedById], references: [id], onDelete: SetNull)
+
+  @@index([hotelId, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
 }

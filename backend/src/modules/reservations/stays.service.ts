@@ -9,6 +9,7 @@ import type { RoomStatus } from '../../generated/prisma/enums.js';
 import { todayIn } from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import {
   AuthorizationService,
   type AuthorizationInput,
@@ -48,6 +49,7 @@ export class StaysService {
     private readonly reservations: ReservationsService,
     private readonly billing: BillingService,
     private readonly authorization: AuthorizationService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -450,6 +452,19 @@ export class StaysService {
           ...balanceData,
         },
       });
+      if (balanceCents > 0) {
+        await this.audit.log(
+          actor,
+          {
+            action: 'reservation.checkout_balance',
+            entity: 'reservation',
+            entityId: id,
+            summary: `Check-out de ${reservation.code} con saldo pendiente de ${(balanceCents / 100).toFixed(2)}: ${input.balanceReason}`,
+            authorizedById: balanceData.balanceAuthorizedById as string,
+          },
+          tx,
+        );
+      }
       await releaseRoom(
         tx,
         actor,

@@ -9,7 +9,9 @@ import type { Currency } from '../../generated/prisma/enums.js';
 import { todayIn, toDbDate } from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import { AuthorizationService } from '../auth/authorization.service.js';
+import { CashService } from '../cash/cash.service.js';
 import type {
   AddChargeDto,
   AddDiscountDto,
@@ -34,6 +36,14 @@ const person = { select: { id: true, name: true } } as const;
 /** Reservas a las que todavía se les puede cargar o cobrar. */
 const BILLABLE = ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'] as const;
 
+const METHOD_LABEL: Record<string, string> = {
+  CASH: 'efectivo',
+  DEBIT_CARD: 'tarjeta de débito',
+  CREDIT_CARD: 'tarjeta de crédito',
+  TRANSFER: 'transferencia',
+  OTHER: 'otro',
+};
+
 // Diferencia aceptable al convertir dólares (redondeo).
 const USD_TOLERANCE_CENTS = 100;
 
@@ -42,6 +52,8 @@ export class BillingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorization: AuthorizationService,
+    private readonly cash: CashService,
+    private readonly audit: AuditService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -83,6 +95,14 @@ export class BillingService {
       where: { hotelId_date: key },
       create: { ...key, rate, createdById: actor.id },
       update: { rate, createdById: actor.id },
+    });
+    await this.audit.log(actor, {
+      action: existing ? 'exchange_rate.update' : 'exchange_rate.create',
+      entity: 'exchange_rate',
+      entityId: today,
+      summary: existing
+        ? `Corrigió el tipo de cambio de ${today}: ${Number(existing.rate)} → ${rate}`
+        : `Capturó el tipo de cambio de ${today}: ${rate}`,
     });
     return this.todayRate(actor);
   }
@@ -256,6 +276,38 @@ export class BillingService {
     };
   }
 
+  /**
+   * Cuentas por cobrar: huéspedes que salieron con saldo pendiente y aún
+   * no lo liquidan.
+   */
+  async receivables(actor: AuthUser) {
+    const rows = await this.prisma.reservation.findMany({
+      where: {
+        hotelId: actor.hotelId,
+        status: 'CHECKED_OUT',
+        balanceDueCents: { gt: 0 },
+      },
+      select: {
+        id: true,
+        code: true,
+        checkedOutAt: true,
+        balanceDueCents: true,
+        balanceReason: true,
+        guest: {
+          select: { id: true, firstName: true, lastName: true, phone: true },
+        },
+        room: { select: { id: true, number: true } },
+        balanceAuthorizedBy: person,
+        checkedOutBy: person,
+      },
+      orderBy: { checkedOutAt: 'asc' },
+    });
+    const balances = await this.balances(rows.map((r) => r.id));
+    return rows
+      .map((r) => ({ ...r, balanceCents: balances.get(r.id) ?? 0 }))
+      .filter((r) => r.balanceCents > 0);
+  }
+
   /** Saldo (centavos) de varias reservas, para listas como Recepción. */
   async balances(reservationIds: string[]): Promise<Map<string, number>> {
     if (reservationIds.length === 0) return new Map();
@@ -370,6 +422,13 @@ export class BillingService {
       dto.authorization,
       'Un descuento arriba del tope',
     );
+    await this.audit.log(actor, {
+      action: 'folio.discount',
+      entity: 'reservation',
+      entityId: reservationId,
+      summary: `Descuento de ${formatCents(amountCents)} en ${folio.reservation.code}: ${dto.reason}`,
+      authorizedById,
+    });
     await this.prisma.folioCharge.create({
       data: {
         hotelId: actor.hotelId,
@@ -445,6 +504,13 @@ export class BillingService {
       dto.authorization,
       'Condonar un cargo arriba del tope',
     );
+    await this.audit.log(actor, {
+      action: 'folio.waive',
+      entity: 'reservation',
+      entityId: reservationId,
+      summary: `Condonó ${charge.description} (${formatCents(charge.amount * 100)}) en ${folio.reservation.code}: ${dto.reason}`,
+      authorizedById,
+    });
     await this.prisma.stayCharge.update({
       where: { id: chargeId },
       data: {
@@ -486,12 +552,26 @@ export class BillingService {
       );
     }
 
+    await this.cash.requireOpenShift(actor);
     await this.prisma.$transaction(async (tx) => {
+      const shiftId = await this.cash.requireOpenShift(actor, tx);
+      const receiptNumber = await nextReceipt(tx, actor.hotelId);
+      await this.audit.log(
+        actor,
+        {
+          action: 'payment.create',
+          entity: 'reservation',
+          entityId: reservationId,
+          summary: `Cobró ${currency === 'USD' ? `${formatCents(amountCents)} USD` : formatCents(amountCents)} (${METHOD_LABEL[dto.method]}) en ${folio.reservation.code}, recibo ${receiptNumber}`,
+        },
+        tx,
+      );
       await tx.payment.create({
         data: {
           hotelId: actor.hotelId,
           reservationId,
-          receiptNumber: await nextReceipt(tx, actor.hotelId),
+          shiftId,
+          receiptNumber,
           kind: 'PAYMENT',
           method: dto.method,
           currency,
@@ -525,12 +605,26 @@ export class BillingService {
         `La devolución supera el saldo a favor de ${formatCents(-folio.totals.balanceCents)}`,
       );
     }
+    await this.cash.requireOpenShift(actor);
     await this.prisma.$transaction(async (tx) => {
+      const shiftId = await this.cash.requireOpenShift(actor, tx);
+      const receiptNumber = await nextReceipt(tx, actor.hotelId);
+      await this.audit.log(
+        actor,
+        {
+          action: 'payment.refund',
+          entity: 'reservation',
+          entityId: reservationId,
+          summary: `Devolvió ${formatCents(amountCents)} (${METHOD_LABEL[dto.method]}) en ${folio.reservation.code}, recibo ${receiptNumber}: ${dto.reason}`,
+        },
+        tx,
+      );
       await tx.payment.create({
         data: {
           hotelId: actor.hotelId,
           reservationId,
-          receiptNumber: await nextReceipt(tx, actor.hotelId),
+          shiftId,
+          receiptNumber,
           kind: 'REFUND',
           method: dto.method,
           amountCents,
@@ -556,9 +650,25 @@ export class BillingService {
     if (!payment) throw new NotFoundException('Pago no encontrado');
     if (payment.voidedAt)
       throw new BadRequestException('El pago ya está cancelado');
-    await this.prisma.payment.update({
-      where: { id: paymentId },
-      data: { voidedAt: new Date(), voidedById: actor.id, voidReason: reason },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          voidedAt: new Date(),
+          voidedById: actor.id,
+          voidReason: reason,
+        },
+      });
+      await this.audit.log(
+        actor,
+        {
+          action: 'payment.void',
+          entity: 'reservation',
+          entityId: reservationId,
+          summary: `Canceló el recibo ${payment.receiptNumber} por ${formatCents(payment.amountMxnCents)}: ${reason}`,
+        },
+        tx,
+      );
     });
     return this.folio(actor, reservationId);
   }
@@ -585,6 +695,16 @@ export class BillingService {
           voidReason: reason,
         },
       });
+      await this.audit.log(
+        actor,
+        {
+          action: 'folio.void',
+          entity: 'reservation',
+          entityId: reservationId,
+          summary: `Canceló ${entry.kind === 'DISCOUNT' ? 'el descuento' : 'el cargo'} «${entry.description}» por ${formatCents(entry.amountCents)}: ${reason}`,
+        },
+        tx,
+      );
       // Si era un cargo sugerido confirmado, vuelve a quedar como sugerido.
       if (entry.stayChargeId) {
         await tx.folioCharge.update({

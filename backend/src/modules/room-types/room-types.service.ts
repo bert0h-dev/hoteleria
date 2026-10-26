@@ -7,6 +7,7 @@ import {
 import { Prisma, type RoomType } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService, changedFields } from '../audit/audit.service.js';
 import { HotelService } from '../hotel/hotel.service.js';
 import { calculateRates, type PricingSettings } from '../pricing/pricing.js';
 import type {
@@ -20,6 +21,7 @@ export class RoomTypesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hotel: HotelService,
+    private readonly audit: AuditService,
   ) {}
 
   async findAll(actor: AuthUser, query: QueryRoomTypesDto) {
@@ -83,6 +85,16 @@ export class RoomTypesService {
         where: { id },
         data: dto,
       });
+      const changes = changedFields(current, dto);
+      if (Object.keys(changes).length) {
+        await this.audit.log(actor, {
+          action: 'room_type.update',
+          entity: 'room_type',
+          entityId: id,
+          summary: `Modificó el tipo «${type.name}» (${Object.keys(changes).join(', ')})`,
+          data: changes as never,
+        });
+      }
       return withRates(type, await this.hotel.getSettings(actor.hotelId));
     } catch (error) {
       throw mapUniqueName(error);

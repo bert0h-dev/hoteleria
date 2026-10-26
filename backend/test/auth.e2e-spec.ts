@@ -55,6 +55,8 @@ describe('Auth y usuarios (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.auditLog.deleteMany({ where: { hotelId } });
+    await prisma.cashShift.deleteMany({ where: { hotelId } });
     await prisma.user.deleteMany({ where: { hotelId } });
     await prisma.hotel.delete({ where: { id: hotelId } });
     await app.close();

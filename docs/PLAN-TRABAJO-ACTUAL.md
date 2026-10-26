@@ -74,9 +74,9 @@ PR separados.
 ### Usuarios
 - [ ] **Rol Gerente / Supervisor:** ve reportes y autoriza descuentos, sin
       administrar usuarios ni configuración.
-- [ ] **Turnos del personal:** quién trabaja cada día; base para el corte de
+- [x] **Turnos del personal:** quién trabaja cada día; base para el corte de
       caja por turno y para asignar limpiezas. → Fase 7
-- [ ] **Bitácora de auditoría:** quién cambió tarifas, precios o usuarios y
+- [x] **Bitácora de auditoría:** quién cambió tarifas, precios o usuarios y
       cuándo. → Fase 7
 
 ### Configuración
