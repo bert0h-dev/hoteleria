@@ -33,11 +33,13 @@ model Hotel {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users      User[]
-  settings   HotelSettings?
-  roomTypes  RoomType[]
-  rooms      Room[]
-  statusLogs RoomStatusLog[]
+  users       User[]
+  settings    HotelSettings?
+  roomTypes   RoomType[]
+  rooms       Room[]
+  statusLogs  RoomStatusLog[]
+  guests      Guest[]
+  taxProfiles GuestTaxProfile[]
 
   @@map("hotels")
 }
@@ -223,4 +225,75 @@ model RoomStatusLog {
   @@index([roomId, createdAt])
   @@index([hotelId, cleanedAt])
   @@map("room_status_logs")
+}
+
+enum DocumentType {
+  INE
+  PASSPORT
+  DRIVER_LICENSE
+  OTHER
+
+  @@map("document_type")
+}
+
+/// Huésped titular. No se borra (conserva su historial de estancias).
+model Guest {
+  id                String        @id @default(uuid()) @db.Uuid
+  hotelId           String        @map("hotel_id") @db.Uuid
+  firstName         String        @map("first_name")
+  lastName          String        @map("last_name")
+  birthDate         DateTime?     @map("birth_date") @db.Date
+  /// Código de país ISO 3166-1 alfa-2 (p. ej. MX, US).
+  nationality       String?       @db.Char(2)
+  phone             String?
+  email             String?
+  documentType      DocumentType? @map("document_type")
+  documentNumber    String?       @map("document_number")
+  /// Procedencia (lo que pide la tarjeta de registro; no la dirección).
+  city              String?
+  state             String?
+  country           String?       @db.Char(2)
+  isVip             Boolean       @default(false) @map("is_vip")
+  isBlocked         Boolean       @default(false) @map("is_blocked")
+  blockedReason     String?       @map("blocked_reason")
+  notes             String?
+  privacyAcceptedAt DateTime?     @map("privacy_accepted_at")
+  /// Texto normalizado (sin acentos, minúsculas) para la búsqueda rápida.
+  searchText        String        @default("") @map("search_text")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  hotel       Hotel             @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  taxProfiles GuestTaxProfile[]
+
+  @@unique([hotelId, documentType, documentNumber])
+  @@index([hotelId, lastName])
+  @@map("guests")
+}
+
+/// Datos fiscales para facturar (CFDI 4.0). Un huésped puede tener varios.
+model GuestTaxProfile {
+  id           String   @id @default(uuid()) @db.Uuid
+  hotelId      String   @map("hotel_id") @db.Uuid
+  guestId      String   @map("guest_id") @db.Uuid
+  rfc          String   @db.VarChar(13)
+  /// Razón social o nombre, tal como aparece en la constancia fiscal.
+  legalName    String   @map("legal_name")
+  /// Clave del catálogo c_RegimenFiscal del SAT (p. ej. 612).
+  taxRegime    String   @map("tax_regime") @db.VarChar(3)
+  /// Código postal del domicilio fiscal.
+  zipCode      String   @map("zip_code") @db.Char(5)
+  /// Clave del catálogo c_UsoCFDI del SAT (p. ej. G03).
+  cfdiUse      String   @default("G03") @map("cfdi_use") @db.VarChar(4)
+  invoiceEmail String?  @map("invoice_email")
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@unique([guestId, rfc])
+  @@index([hotelId, rfc])
+  @@map("guest_tax_profiles")
 }

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { buildSearchText } from '../src/modules/guests/guest-search.js';
 import {
   Amenity,
   PrismaClient,
@@ -148,10 +149,62 @@ async function seedCatalog(hotelId: string) {
   );
 }
 
+async function seedGuests(hotelId: string) {
+  if (await prisma.guest.count({ where: { hotelId } })) {
+    console.log('• Ya hay huéspedes registrados.');
+    return;
+  }
+  const guests = [
+    {
+      firstName: 'María José',
+      lastName: 'Núñez Pérez',
+      phone: '998 123 4567',
+      email: 'mariajose@ejemplo.com',
+      city: 'Guadalajara',
+      state: 'Jalisco',
+      country: 'MX',
+      nationality: 'MX',
+      isVip: true,
+      notes: 'Prefiere planta baja.',
+    },
+    {
+      firstName: 'Carlos',
+      lastName: 'Hernández Ruiz',
+      phone: '55 9876 5432',
+      email: null,
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      country: 'MX',
+      nationality: 'MX',
+      isVip: false,
+      notes: null,
+    },
+    {
+      firstName: 'Emily',
+      lastName: 'Johnson',
+      phone: null,
+      email: 'emily.johnson@example.com',
+      city: 'Austin',
+      state: 'Texas',
+      country: 'US',
+      nationality: 'US',
+      isVip: false,
+      notes: null,
+    },
+  ];
+  for (const g of guests) {
+    await prisma.guest.create({
+      data: { ...g, hotelId, searchText: buildSearchText(g) },
+    });
+  }
+  console.log(`✓ ${guests.length} huéspedes de ejemplo.`);
+}
+
 try {
   const hotelId = await seedAdmin();
   await seedSettings(hotelId);
   await seedCatalog(hotelId);
+  await seedGuests(hotelId);
 } finally {
   await prisma.$disconnect();
 }
