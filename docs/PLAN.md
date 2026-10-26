@@ -24,6 +24,8 @@ en las tablas principales).
   - [x] Frontend: configuración con calculadora en vivo, tipos y tarifas, tablero por piso con cambio de estado e historial.
 - [ ] **Ajustes antes de la Fase 4:** impuestos, personas extra, tope por hora, mantenimiento con fechas, zona horaria y Mi perfil. Detalle en [PLAN-TRABAJO-ACTUAL.md](PLAN-TRABAJO-ACTUAL.md).
 - [ ] **Fase 4 — Huéspedes:** registro y búsqueda.
+  - [x] Backend: huéspedes (titular), búsqueda sin acentos, duplicados, VIP y bloqueo, datos fiscales CFDI 4.0 (varios RFC por huésped) y catálogos del SAT.
+  - [ ] Frontend: lista, ficha, formulario, datos fiscales y componente "buscar o crear huésped".
 - [ ] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.
 - [ ] **Fase 6 — Check-in / Check-out.**
 - [ ] **Fase 7 — Cobros:** cargos, pagos y folio del huésped.

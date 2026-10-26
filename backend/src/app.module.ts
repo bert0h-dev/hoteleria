@@ -5,6 +5,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env.validation.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CatalogsModule } from './modules/catalogs/catalogs.module.js';
+import { GuestsModule } from './modules/guests/guests.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { HotelModule } from './modules/hotel/hotel.module.js';
 import { RoomTypesModule } from './modules/room-types/room-types.module.js';
@@ -26,6 +28,8 @@ import { UsersModule } from './modules/users/users.module.js';
     HotelModule,
     RoomTypesModule,
     RoomsModule,
+    GuestsModule,
+    CatalogsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
