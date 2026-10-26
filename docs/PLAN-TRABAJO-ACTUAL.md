@@ -59,7 +59,7 @@ PR separados.
       Santa, diciembre) o por día (viernes y sábado). → Fase 5
 - [ ] **Precio manual por tipo:** sobrescribir una tarifa calculada (p. ej.
       la Suite por hora con precio fijo).
-- [ ] **Salida tardía / entrada anticipada:** cargo por hora extra fuera del
+- [x] **Salida tardía / entrada anticipada:** cargo por hora extra fuera del
       horario. → Fase 6
 
 ### Habitaciones
@@ -68,7 +68,7 @@ PR separados.
       Disponible. → Fase 9
 - [ ] **Camas por tipo** (p. ej. "1 King", "2 matrimoniales").
 - [ ] **Fotos del tipo de habitación** (útil si hay reservas en línea).
-- [ ] **Ocupada bloqueada:** una habitación Ocupada solo sale de ese estado con
+- [x] **Ocupada bloqueada:** una habitación Ocupada solo sale de ese estado con
       el check-out, y después pasa automáticamente a Limpieza. → Fase 6
 
 ### Usuarios

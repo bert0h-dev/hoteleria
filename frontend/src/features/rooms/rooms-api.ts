@@ -77,8 +77,9 @@ export interface RoomsQuery {
   overdue?: boolean;
 }
 
-export function useRooms(query: RoomsQuery) {
+export function useRooms(query: RoomsQuery, options?: { enabled?: boolean }) {
   return useQuery({
+    enabled: options?.enabled ?? true,
     queryKey: [...keys.rooms, 'list', query],
     queryFn: async () =>
       (await api.get<Room[]>('/rooms', { params: query })).data,

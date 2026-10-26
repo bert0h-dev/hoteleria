@@ -233,7 +233,10 @@ describe('Check-in, estancia y check-out (e2e)', () => {
     );
     // Ahora ocupa inventario de Suite (por la mejora), pero conserva su
     // tarifa congelada de Doble: 2 días × 1200.
-    expect(res.body.totalAmount).toBeGreaterThan(before.body.totalAmount);
+    // Con mejora de categoría se cobra la tarifa congelada de la Doble
+    // (2 días × 1200), no la de la Suite.
+    expect(res.body.totalAmount).toBe(2400);
+    expect(before.body.totalAmount).toBe(1200);
   });
 
   it('check-out tardío: sugiere el cargo y manda la habitación a Limpieza', async () => {
@@ -256,6 +259,55 @@ describe('Check-in, estancia y check-out (e2e)', () => {
       where: { id: rooms['102'] },
     });
     expect(room.status).toBe('CLEANING');
+  });
+
+  it('ajusta las personas al llegar y durante la estancia', async () => {
+    // La Doble cobra $250 por adulto extra (incluye 2).
+    await prisma.roomType.update({
+      where: { id: dobleId },
+      data: { extraAdultRate: 250 },
+    });
+    await prisma.room.update({
+      where: { id: rooms['201'] },
+      data: { status: 'AVAILABLE' },
+    });
+    const id = (await dailyNow()).body.id; // reservada para 2 adultos
+
+    // Llegan 3: se ajusta en el check-in (mejora a Suite, cargos de la Doble).
+    const checkIn = await post(`/api/reservations/${id}/check-in`, {
+      roomId: rooms['201'],
+      reason: 'Familia más grande',
+      adults: 3,
+      children: 0,
+    }).expect(201);
+    expect(checkIn.body).toMatchObject({
+      adults: 3,
+      extrasAmount: 250,
+      totalAmount: 1450,
+    });
+
+    // Durante la estancia llega una persona más: se recalcula todo.
+    const more = await post(`/api/reservations/${id}/guests`, {
+      adults: 4,
+      children: 0,
+    }).expect(201);
+    expect(more.body).toMatchObject({ adults: 4, totalAmount: 1700 });
+
+    const tooMany = await post(`/api/reservations/${id}/guests`, {
+      adults: 5,
+      children: 0,
+    }).expect(400);
+    expect(tooMany.body.message).toBe(
+      '«Suite» admite hasta 4 adultos y 0 niños',
+    );
+
+    const same = await post(`/api/reservations/${id}/guests`, {
+      adults: 4,
+      children: 0,
+    }).expect(400);
+    expect(same.body.message).toBe('La cantidad de personas no cambió');
+
+    await post(`/api/reservations/${id}/check-out`).expect(201);
   });
 
   it('llegada sin reserva: crea la reserva y hace el check-in', async () => {

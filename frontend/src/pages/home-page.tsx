@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  Activity,
-  BedDouble,
-  CreditCard,
-  Database,
-  Server,
-} from 'lucide-react';
+import { Activity, CreditCard, Database, Server } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,12 +21,6 @@ function greeting(hour: number) {
 }
 
 const UPCOMING = [
-  {
-    icon: BedDouble,
-    title: 'Check-in / Check-out',
-    text: 'Entradas y salidas del día',
-    phase: 6,
-  },
   {
     icon: CreditCard,
     title: 'Cobros',

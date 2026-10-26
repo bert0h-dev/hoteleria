@@ -93,7 +93,13 @@ export class StaysService {
     });
   }
 
-  async checkIn(actor: AuthUser, id: string, roomId: string, reason?: string) {
+  async checkIn(
+    actor: AuthUser,
+    id: string,
+    roomId: string,
+    reason?: string,
+    guests?: { adults?: number; children?: number },
+  ) {
     const reservation = await this.findActive(actor, id);
     if (reservation.status !== 'CONFIRMED') {
       throw new BadRequestException(
@@ -121,6 +127,19 @@ export class StaysService {
     const room = await this.findRoom(actor, roomId);
     const now = new Date();
 
+    // Si llegan más (o menos) personas de las reservadas, se ajusta aquí.
+    const adults = guests?.adults ?? reservation.adults;
+    const children = guests?.children ?? reservation.children;
+    const guestChange =
+      adults !== reservation.adults || children !== reservation.children
+        ? await this.repriceForGuests(
+            reservation,
+            { adults, children },
+            ctx,
+            room.roomTypeId,
+          )
+        : {};
+
     const updated = await this.prisma.$transaction(async (tx) => {
       const typeChange = await this.prepareTypeChange(
         tx,
@@ -147,6 +166,7 @@ export class StaysService {
           checkedInAt: now,
           checkedInById: actor.id,
           ...typeChange,
+          ...guestChange,
         },
       });
 
@@ -303,8 +323,9 @@ export class StaysService {
       modality,
       stay.units,
     );
+    // Tarifa congelada del tipo reservado (aunque haya mejora de categoría).
     const quote = computeQuote(
-      type,
+      await this.pricingType(reservation),
       stay,
       modality,
       { adults: reservation.adults, children: reservation.children },
@@ -339,6 +360,39 @@ export class StaysService {
         },
         include: reservationInclude,
       });
+    });
+  }
+
+  /**
+   * Cambia la cantidad de personas y recalcula toda la estancia (tarifa
+   * congelada, cargos por persona del tipo reservado y temporadas vigentes).
+   */
+  async changeGuests(
+    actor: AuthUser,
+    id: string,
+    guests: { adults: number; children: number },
+  ) {
+    const reservation = await this.findActive(actor, id);
+    if (
+      reservation.status !== 'CONFIRMED' &&
+      reservation.status !== 'CHECKED_IN'
+    ) {
+      throw new BadRequestException(
+        'Solo se pueden cambiar las personas de una reserva confirmada o en casa',
+      );
+    }
+    if (
+      guests.adults === reservation.adults &&
+      guests.children === reservation.children
+    ) {
+      throw new BadRequestException('La cantidad de personas no cambió');
+    }
+    const ctx = await this.reservations.context(actor);
+    const data = await this.repriceForGuests(reservation, guests, ctx);
+    return this.prisma.reservation.update({
+      where: { id },
+      data,
+      include: reservationInclude,
     });
   }
 
@@ -431,6 +485,64 @@ export class StaysService {
   }
 
   // -------------------------------------------------------------------------
+
+  /**
+   * Tipo con el que se calcula el precio: el reservado originalmente (si
+   * hubo mejora de categoría) y siempre con la tarifa por noche congelada.
+   */
+  private async pricingType(reservation: ReservationRow) {
+    const type = await this.prisma.roomType.findUniqueOrThrow({
+      where: { id: reservation.bookedRoomTypeId ?? reservation.roomTypeId },
+    });
+    return { ...type, nightlyRate: reservation.nightlyRate };
+  }
+
+  /**
+   * Revisa la capacidad (de la habitación real) y recalcula toda la estancia
+   * con la nueva cantidad de personas.
+   */
+  private async repriceForGuests(
+    reservation: ReservationRow,
+    guests: { adults: number; children: number },
+    ctx: Context,
+    capacityTypeId = reservation.roomTypeId,
+  ): Promise<Prisma.ReservationUncheckedUpdateInput> {
+    const capacityType = await this.prisma.roomType.findUniqueOrThrow({
+      where: { id: capacityTypeId },
+    });
+    if (
+      guests.adults > capacityType.maxAdults ||
+      guests.children > capacityType.maxChildren
+    ) {
+      throw new BadRequestException(
+        `«${capacityType.name}» admite hasta ${capacityType.maxAdults} adultos y ${capacityType.maxChildren} niños`,
+      );
+    }
+    const modality = reservation.modality as Modality;
+    const arrivalDate = todayIn(ctx.timeZone, reservation.checkIn);
+    const calendar = await this.reservations.priceCalendar(
+      { hotelId: reservation.hotelId } as AuthUser,
+      arrivalDate,
+      modality,
+      reservation.units,
+    );
+    const quote = computeQuote(
+      await this.pricingType(reservation),
+      { units: reservation.units },
+      modality,
+      guests,
+      ctx.settings,
+      calendar,
+    );
+    return {
+      adults: guests.adults,
+      children: guests.children,
+      baseAmount: quote.baseAmount,
+      extrasAmount: quote.extrasAmount,
+      totalAmount: quote.totalAmount,
+      pricing: quote.detail as unknown as Prisma.InputJsonValue,
+    };
+  }
 
   private async findActive(
     actor: AuthUser,

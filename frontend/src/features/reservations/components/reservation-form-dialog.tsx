@@ -49,7 +49,9 @@ import {
   todayInHotel,
 } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { useQuote, useSaveReservation } from '../reservations-api';
+import { useRooms } from '@/features/rooms/rooms-api';
+import { useQuote, useSaveReservation, useWalkIn } from '../reservations-api';
+import { RoomPicker } from './room-picker';
 import {
   MODALITIES,
   SOURCES,
@@ -157,6 +159,8 @@ type FormProps = {
   onOpenChange: (open: boolean) => void;
   reservation?: Reservation | null;
   preset?: ReservationPreset;
+  /** Llegada sin reserva: se elige la habitación y se hace el check-in. */
+  walkIn?: boolean;
   onSaved?: (reservation: Reservation) => void;
 };
 
@@ -178,6 +182,7 @@ function ReservationForm({
   onOpenChange,
   reservation,
   preset,
+  walkIn,
   onSaved,
 }: FormProps) {
   const isEdit = !!reservation;
@@ -187,6 +192,8 @@ function ReservationForm({
   const set = (patch: Partial<FormState>) =>
     setS((prev) => ({ ...prev, ...patch }));
   const save = useSaveReservation();
+  const walkInMutation = useWalkIn();
+  const [roomId, setRoomId] = useState<string | null>(null);
 
   // Cotización en vivo (con un pequeño retraso mientras se escribe).
   const stayKey = useDebouncedValue(JSON.stringify(toStay(s)), 300);
@@ -197,6 +204,21 @@ function ReservationForm({
   const quote = useQuote(stay);
   const options = quote.data?.options ?? [];
   const selected = options.find((o) => o.roomType.id === s.roomTypeId);
+
+  // Llegada sin reserva: habitaciones limpias del tipo elegido.
+  const freeRooms = useRooms(
+    { status: 'AVAILABLE', roomTypeId: s.roomTypeId ?? undefined },
+    { enabled: !!walkIn && !!s.roomTypeId },
+  );
+  const walkInRooms = (freeRooms.data ?? []).map((r) => ({
+    id: r.id,
+    number: r.number,
+    floor: r.floor,
+    roomType: r.roomType,
+    upgrade: false,
+    assignable: true,
+    lastCleanedAt: r.lastCleanedAt,
+  }));
 
   // Datos fiscales del huésped elegido.
   const { data: fullGuest } = useGuest(s.guest?.id);
@@ -218,25 +240,31 @@ function ReservationForm({
     !!s.guest &&
     selected.fitsGuests &&
     availableFor(selected.roomType.id, selected.available) > 0 &&
-    !quote.isFetching;
+    !quote.isFetching &&
+    (!walkIn || walkInRooms.some((r) => r.id === roomId));
 
   const submit = async () => {
     if (!stay || !selected || !s.guest) return;
+    const input = {
+      ...stay,
+      guestId: s.guest.id,
+      roomTypeId: selected.roomType.id,
+      source: s.source,
+      requiresDeposit: s.requiresDeposit,
+      notes: s.notes.trim() || null,
+      taxProfileId: s.taxProfileId === NO_TAX ? null : s.taxProfileId,
+    };
     try {
-      const saved = await save.mutateAsync({
-        id: reservation?.id,
-        ...stay,
-        guestId: s.guest.id,
-        roomTypeId: selected.roomType.id,
-        source: s.source,
-        requiresDeposit: s.requiresDeposit,
-        notes: s.notes.trim() || null,
-        taxProfileId: s.taxProfileId === NO_TAX ? null : s.taxProfileId,
-      });
+      const saved =
+        walkIn && roomId
+          ? await walkInMutation.mutateAsync({ ...input, roomId })
+          : await save.mutateAsync({ id: reservation?.id, ...input });
       toast.success(
-        isEdit
-          ? `Reserva ${saved.code} actualizada`
-          : `Reserva ${saved.code} creada`,
+        walkIn
+          ? `Check-in: ${s.guest.firstName} en la habitación ${saved.room?.number}`
+          : isEdit
+            ? `Reserva ${saved.code} actualizada`
+            : `Reserva ${saved.code} creada`,
         {
           description: `${s.guest.firstName} ${s.guest.lastName} · ${selected.roomType.name}`,
         },
@@ -262,10 +290,16 @@ function ReservationForm({
     <>
       <DialogHeader className="shrink-0 border-b p-6">
         <DialogTitle>
-          {isEdit ? `Modificar reserva ${reservation.code}` : 'Nueva reserva'}
+          {walkIn
+            ? 'Llegada sin reserva'
+            : isEdit
+              ? `Modificar reserva ${reservation.code}`
+              : 'Nueva reserva'}
         </DialogTitle>
         <DialogDescription>
-          Se reserva un tipo de habitación; la habitación se asigna al llegar.
+          {walkIn
+            ? 'Registra la estancia y asigna la habitación en un solo paso.'
+            : 'Se reserva un tipo de habitación; la habitación se asigna al llegar.'}
         </DialogDescription>
       </DialogHeader>
 
@@ -555,8 +589,26 @@ function ReservationForm({
               />
             </div>
           </Section>
+          {walkIn && (
+            <Section number={5} title="Habitación">
+              {s.roomTypeId ? (
+                <RoomPicker
+                  rooms={walkInRooms}
+                  isLoading={freeRooms.isLoading}
+                  value={roomId}
+                  onChange={setRoomId}
+                  reason=""
+                  onReasonChange={() => {}}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Elige primero el tipo de habitación.
+                </p>
+              )}
+            </Section>
+          )}
 
-          <Section number={5} title="Resumen">
+          <Section number={walkIn ? 6 : 5} title="Resumen">
             {selected ? (
               <div className="rounded-xl border bg-background p-4">
                 <p className="mb-3 flex items-center gap-2 text-sm font-medium">
@@ -587,9 +639,18 @@ function ReservationForm({
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           Cancelar
         </Button>
-        <Button onClick={submit} disabled={!canSave || save.isPending}>
-          {save.isPending && <Loader2 className="animate-spin" />}
-          {isEdit ? 'Guardar cambios' : 'Confirmar reserva'}
+        <Button
+          onClick={submit}
+          disabled={!canSave || save.isPending || walkInMutation.isPending}
+        >
+          {(save.isPending || walkInMutation.isPending) && (
+            <Loader2 className="animate-spin" />
+          )}
+          {walkIn
+            ? 'Hacer check-in'
+            : isEdit
+              ? 'Guardar cambios'
+              : 'Confirmar reserva'}
           {selected && ` · ${formatMoney(selected.quote.totalAmount)}`}
         </Button>
       </DialogFooter>

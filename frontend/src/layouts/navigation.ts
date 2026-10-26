@@ -1,6 +1,7 @@
 import {
   BedDouble,
   CalendarDays,
+  ConciergeBell,
   LayoutDashboard,
   Settings,
   Users,
@@ -22,7 +23,15 @@ export interface NavItem {
 export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'General',
-    items: [{ to: '/', label: 'Inicio', icon: LayoutDashboard }],
+    items: [
+      { to: '/', label: 'Inicio', icon: LayoutDashboard },
+      {
+        to: '/recepcion',
+        label: 'Recepción',
+        icon: ConciergeBell,
+        roles: ['ADMIN', 'RECEPTION'],
+      },
+    ],
   },
   {
     title: 'Operación',

@@ -24,6 +24,7 @@ import {
 import {
   AssignRoomDto,
   ExtendStayDto,
+  GuestCountDto,
   WalkInDto,
 } from './dto/stay-operations.dto.js';
 import { ReservationsService } from './reservations.service.js';
@@ -114,7 +115,10 @@ export class ReservationsController {
     @Param('id', ParseUuid) id: string,
     @Body() dto: AssignRoomDto,
   ) {
-    return this.stays.checkIn(actor, id, dto.roomId, dto.reason);
+    return this.stays.checkIn(actor, id, dto.roomId, dto.reason, {
+      adults: dto.adults,
+      children: dto.children,
+    });
   }
 
   @Post(':id/move')
@@ -133,6 +137,16 @@ export class ReservationsController {
     @Body() dto: ExtendStayDto,
   ) {
     return this.stays.extend(actor, id, dto);
+  }
+
+  /** Cambiar la cantidad de personas (confirmada o en casa). */
+  @Post(':id/guests')
+  changeGuests(
+    @CurrentUser() actor: AuthUser,
+    @Param('id', ParseUuid) id: string,
+    @Body() dto: GuestCountDto,
+  ) {
+    return this.stays.changeGuests(actor, id, dto);
   }
 
   @Post(':id/check-out')
