@@ -3,6 +3,7 @@ import {
   computeStay,
   peakOccupancy,
   StayError,
+  suggestTimeCharge,
   type StaySettings,
 } from './stay.js';
 
@@ -268,5 +269,46 @@ describe('computeQuote con temporadas', () => {
         viernes,
       ).baseAmount,
     ).toBe(519);
+  });
+});
+
+describe('suggestTimeCharge', () => {
+  const base = {
+    nightlyRate: 1000,
+    graceMinutes: 30,
+    settings,
+    scheduled: new Date('2026-11-10T21:00:00Z'), // 15:00 en CDMX
+  };
+
+  it('dentro de la tolerancia no hay cargo', () => {
+    expect(
+      suggestTimeCharge({
+        ...base,
+        direction: 'early',
+        actual: new Date('2026-11-10T20:35:00Z'),
+      }),
+    ).toBeNull();
+  });
+
+  it('entrada anticipada: horas completas × tarifa por hora', () => {
+    // Llega 2 h 10 min antes → 3 h × 150 = 450
+    expect(
+      suggestTimeCharge({
+        ...base,
+        direction: 'early',
+        actual: new Date('2026-11-10T18:50:00Z'),
+      }),
+    ).toEqual({ hours: 3, amount: 450 });
+  });
+
+  it('salida tardía con tope al precio del día', () => {
+    // Sale 10 h tarde → 10 × 150 = 1500, tope día 1200
+    expect(
+      suggestTimeCharge({
+        ...base,
+        direction: 'late',
+        actual: new Date('2026-11-11T07:00:00Z'),
+      }),
+    ).toEqual({ hours: 10, amount: 1200 });
   });
 });

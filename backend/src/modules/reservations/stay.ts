@@ -230,3 +230,30 @@ export function peakOccupancy(
   }
   return peak;
 }
+
+/**
+ * Cargo sugerido por entrada anticipada o salida tardía: horas fuera del
+ * horario (después de la tolerancia) × tarifa por hora, con tope al precio
+ * del día. Devuelve null si está dentro de la tolerancia.
+ */
+export function suggestTimeCharge(input: {
+  /** Hora programada (entrada o salida). */
+  scheduled: Date;
+  /** Hora real. */
+  actual: Date;
+  direction: 'early' | 'late';
+  /** Precio por noche congelado de la reserva. */
+  nightlyRate: number;
+  graceMinutes: number;
+  settings: PricingSettings;
+}): { hours: number; amount: number } | null {
+  const diffMs =
+    input.direction === 'early'
+      ? input.scheduled.getTime() - input.actual.getTime()
+      : input.actual.getTime() - input.scheduled.getTime();
+  if (diffMs <= input.graceMinutes * 60_000) return null;
+
+  const hours = Math.ceil(diffMs / 3_600_000);
+  const { hourly, daily } = calculateRates(input.nightlyRate, input.settings);
+  return { hours, amount: Math.min(hours * hourly, daily) };
+}

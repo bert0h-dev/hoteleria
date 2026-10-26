@@ -42,6 +42,7 @@ model Hotel {
   taxProfiles  GuestTaxProfile[]
   reservations Reservation[]
   ratePeriods  RatePeriod[]
+  stayCharges  StayCharge[]
 
   @@map("hotels")
 }
@@ -68,6 +69,9 @@ model User {
   statusChanges         RoomStatusLog[] @relation("StatusChangedBy")
   reservationsCreated   Reservation[]   @relation("ReservationCreatedBy")
   reservationsCancelled Reservation[]   @relation("ReservationCancelledBy")
+  checkIns              Reservation[]   @relation("ReservationCheckedInBy")
+  checkOuts             Reservation[]   @relation("ReservationCheckedOutBy")
+  stayCharges           StayCharge[]
   cleanings             RoomStatusLog[] @relation("CleanedBy")
   roomsCleaned          Room[]          @relation("LastCleanedBy")
 
@@ -148,6 +152,9 @@ model HotelSettings {
   weekdayAdjustDays     Int[]    @default([]) @map("weekday_adjust_days")
   /// Ajuste en % para esos días (p. ej. 15 = +15 %). No aplica en temporada.
   weekdayAdjustPercent  Int      @default(0) @map("weekday_adjust_percent")
+  /// Minutos de tolerancia antes de sugerir cargo por entrada anticipada
+  /// o salida tardía.
+  graceMinutes          Int      @default(30) @map("grace_minutes")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
@@ -174,9 +181,10 @@ model RoomType {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  hotel        Hotel         @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  rooms        Room[]
-  reservations Reservation[]
+  hotel              Hotel         @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  rooms              Room[]
+  reservations       Reservation[]
+  bookedReservations Reservation[] @relation("BookedRoomType")
 
   @@unique([hotelId, name])
   @@map("room_types")
@@ -371,26 +379,38 @@ model Reservation {
   /// Detalle del cálculo (semanas, horas cobradas, tope, impuestos…).
   pricing      Json
 
-  createdById   String    @map("created_by_id") @db.Uuid
-  cancelledAt   DateTime? @map("cancelled_at")
-  cancelledById String?   @map("cancelled_by_id") @db.Uuid
-  cancelReason  String?   @map("cancel_reason")
-  noShowAt      DateTime? @map("no_show_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdById      String    @map("created_by_id") @db.Uuid
+  cancelledAt      DateTime? @map("cancelled_at")
+  cancelledById    String?   @map("cancelled_by_id") @db.Uuid
+  cancelReason     String?   @map("cancel_reason")
+  noShowAt         DateTime? @map("no_show_at")
+  checkedInAt      DateTime? @map("checked_in_at")
+  checkedInById    String?   @map("checked_in_by_id") @db.Uuid
+  checkedOutAt     DateTime? @map("checked_out_at")
+  checkedOutById   String?   @map("checked_out_by_id") @db.Uuid
+  /// Tipo reservado originalmente (si hubo mejora de categoría).
+  bookedRoomTypeId String?   @map("booked_room_type_id") @db.Uuid
+  upgradeReason    String?   @map("upgrade_reason")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  hotel       Hotel            @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  guest       Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  roomType    RoomType         @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
-  room        Room?            @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  taxProfile  GuestTaxProfile? @relation(fields: [taxProfileId], references: [id], onDelete: SetNull)
-  createdBy   User             @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  cancelledBy User?            @relation("ReservationCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  hotel          Hotel            @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  guest          Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  roomType       RoomType         @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  room           Room?            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  taxProfile     GuestTaxProfile? @relation(fields: [taxProfileId], references: [id], onDelete: SetNull)
+  createdBy      User             @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  cancelledBy    User?            @relation("ReservationCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  checkedInBy    User?            @relation("ReservationCheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
+  checkedOutBy   User?            @relation("ReservationCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: SetNull)
+  bookedRoomType RoomType?        @relation("BookedRoomType", fields: [bookedRoomTypeId], references: [id], onDelete: SetNull)
+  charges        StayCharge[]
 
   @@unique([hotelId, code])
   @@index([hotelId, roomTypeId, checkIn, checkOut])
   @@index([hotelId, status])
   @@index([guestId])
+  @@index([hotelId, roomId, status])
   @@map("reservations")
 }
 
@@ -415,4 +435,44 @@ model RatePeriod {
 
   @@index([hotelId, startDate, endDate])
   @@map("rate_periods")
+}
+
+enum StayChargeKind {
+  EARLY_CHECK_IN
+  LATE_CHECK_OUT
+
+  @@map("stay_charge_kind")
+}
+
+enum StayChargeStatus {
+  /// Calculado por el sistema; se confirma o condona al cobrar (Fase 7).
+  SUGGESTED
+  CONFIRMED
+  WAIVED
+
+  @@map("stay_charge_status")
+}
+
+/// Cargo adicional de una estancia (entrada anticipada, salida tardía…).
+model StayCharge {
+  id            String           @id @default(uuid()) @db.Uuid
+  hotelId       String           @map("hotel_id") @db.Uuid
+  reservationId String           @map("reservation_id") @db.Uuid
+  kind          StayChargeKind
+  status        StayChargeStatus @default(SUGGESTED)
+  description   String
+  /// Horas cobradas (después de la tolerancia).
+  hours         Int
+  /// Pesos enteros, impuestos incluidos.
+  amount        Int
+  createdById   String           @map("created_by_id") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  hotel       Hotel       @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([reservationId])
+  @@map("stay_charges")
 }

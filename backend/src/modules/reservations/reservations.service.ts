@@ -46,7 +46,7 @@ const ACTIVE: ReservationStatus[] = ['CONFIRMED', 'CHECKED_IN'];
 // Tolerancia para registrar una estancia que empieza "ahora mismo".
 const PAST_TOLERANCE_MS = 30 * 60_000;
 
-const reservationInclude = {
+export const reservationInclude = {
   guest: {
     select: {
       id: true,
@@ -63,11 +63,15 @@ const reservationInclude = {
   taxProfile: { select: { id: true, rfc: true, legalName: true } },
   createdBy: { select: { id: true, name: true } },
   cancelledBy: { select: { id: true, name: true } },
+  checkedInBy: { select: { id: true, name: true } },
+  checkedOutBy: { select: { id: true, name: true } },
+  bookedRoomType: { select: { id: true, name: true } },
+  charges: { orderBy: { createdAt: 'asc' } },
 } satisfies Prisma.ReservationInclude;
 
-interface Context {
+export interface Context {
   timeZone: string;
-  settings: StaySettings;
+  settings: StaySettings & { graceMinutes: number };
 }
 
 @Injectable()
@@ -144,7 +148,7 @@ export class ReservationsService {
    * (activas y sin bloqueo en esas fechas) menos el pico de reservas
    * activas que se cruzan.
    */
-  private async availability(
+  async availability(
     db: Tx | PrismaService,
     actor: AuthUser,
     roomTypeId: string,
@@ -574,7 +578,7 @@ export class ReservationsService {
   // ---------------------------------------------------------------------
 
   /** Temporadas y ajuste por día que tocan las noches de la estancia. */
-  private async priceCalendar(
+  async priceCalendar(
     actor: AuthUser,
     arrivalDate: string,
     modality: StayModality,
@@ -590,7 +594,7 @@ export class ReservationsService {
     return { arrivalDate, seasons, weekday };
   }
 
-  private async context(actor: AuthUser): Promise<Context> {
+  async context(actor: AuthUser): Promise<Context> {
     const [hotel, settings] = await Promise.all([
       this.prisma.hotel.findUniqueOrThrow({
         where: { id: actor.hotelId },
@@ -601,7 +605,7 @@ export class ReservationsService {
     return { timeZone: hotel.timezone, settings };
   }
 
-  private stayOrThrow(dto: StayDto, ctx: Context): Stay {
+  stayOrThrow(dto: StayDto, ctx: Context): Stay {
     try {
       return computeStay(dto, ctx.settings, ctx.timeZone);
     } catch (error) {
@@ -611,7 +615,7 @@ export class ReservationsService {
     }
   }
 
-  private async activeType(actor: AuthUser, id: string): Promise<RoomType> {
+  async activeType(actor: AuthUser, id: string): Promise<RoomType> {
     const type = await this.prisma.roomType.findFirst({
       where: { id, hotelId: actor.hotelId },
     });
@@ -652,7 +656,7 @@ export class ReservationsService {
  * simultáneas del mismo tipo se atienden una por una, así nunca se vende
  * más de lo disponible.
  */
-async function lockRoomType(tx: Tx, roomTypeId: string) {
+export async function lockRoomType(tx: Tx, roomTypeId: string) {
   // executeRaw: la función devuelve void y no hay nada que leer.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${roomTypeId}, 0))`;
 }
