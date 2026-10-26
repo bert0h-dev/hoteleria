@@ -897,6 +897,8 @@ export class ReportsService {
       where: {
         hotelId: actor.hotelId,
         cleanedAt: { gte: range.start, lt: range.end },
+        // Las que vienen de una tarea se cuentan con la tarea (tiempo real).
+        cleaningTaskId: null,
         ...(own ? { cleanedById: actor.id } : { cleanedById: { not: null } }),
       },
       select: {
@@ -934,12 +936,42 @@ export class ReportsService {
         : null;
     };
 
-    const detail = cleaned.map((c) => ({
-      at: c.cleanedAt!.toISOString(),
-      user: c.cleanedBy!.name,
-      room: c.room.number,
-      minutes: minutesFor(c),
-    }));
+    const tasks = await this.prisma.cleaningTask.findMany({
+      where: {
+        hotelId: actor.hotelId,
+        status: 'DONE',
+        finishedAt: { gte: range.start, lt: range.end },
+        ...(own ? { finishedById: actor.id } : { finishedById: { not: null } }),
+      },
+      select: {
+        kind: true,
+        startedAt: true,
+        finishedAt: true,
+        room: { select: { number: true } },
+        finishedBy: { select: { name: true } },
+      },
+    });
+
+    const detail = [
+      ...cleaned.map((c) => ({
+        at: c.cleanedAt!.toISOString(),
+        user: c.cleanedBy!.name,
+        room: c.room.number,
+        kind: 'Salida',
+        minutes: minutesFor(c),
+      })),
+      ...tasks.map((t) => ({
+        at: t.finishedAt!.toISOString(),
+        user: t.finishedBy!.name,
+        room: t.room.number,
+        kind: t.kind === 'DEPARTURE' ? 'Salida' : 'Repaso',
+        minutes: t.startedAt
+          ? Math.round(
+              (t.finishedAt!.getTime() - t.startedAt.getTime()) / 60_000,
+            )
+          : null,
+      })),
+    ].sort((a, b) => a.at.localeCompare(b.at));
     const byUser = new Map<string, { count: number; minutes: number[] }>();
     for (const d of detail) {
       const row = byUser.get(d.user) ?? { count: 0, minutes: [] };
@@ -973,7 +1005,7 @@ export class ReportsService {
       from: range.from,
       to: range.to,
       notes:
-        'Tiempo = desde que la habitación pasó a Limpieza hasta que se marcó limpia (incluye la espera).',
+        'Tiempo = de «Empezar» a «Terminar» en la tarea. Si se marcó limpia desde el tablero sin tarea, cuenta desde que pasó a Limpieza (incluye la espera).',
       summary: [
         { label: 'Habitaciones limpiadas', value: detail.length, type: 'int' },
         {
@@ -1022,6 +1054,7 @@ export class ReportsService {
             { key: 'at', label: 'Fecha', type: 'datetime' },
             { key: 'user', label: 'Limpió', type: 'text' },
             { key: 'room', label: 'Habitación', type: 'text' },
+            { key: 'kind', label: 'Tipo', type: 'text' },
             { key: 'minutes', label: 'Tiempo (min)', type: 'int' },
           ],
           rows: detail,

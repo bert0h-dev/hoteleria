@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { BillingModule } from './modules/billing/billing.module.js';
 import { CashModule } from './modules/cash/cash.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
+import { CleaningModule } from './modules/cleaning/cleaning.module.js';
 import { CatalogsModule } from './modules/catalogs/catalogs.module.js';
 import { GuestsModule } from './modules/guests/guests.module.js';
 import { HealthModule } from './modules/health/health.module.js';
@@ -43,6 +44,7 @@ import { UsersModule } from './modules/users/users.module.js';
     CashModule,
     DashboardModule,
     ReportsModule,
+    CleaningModule,
     CatalogsModule,
     HealthModule,
   ],

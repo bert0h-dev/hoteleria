@@ -61,6 +61,13 @@ export const router = createBrowserRouter([
               })),
           },
           {
+            path: 'limpieza',
+            lazy: () =>
+              import('@/pages/cleaning-page').then((m) => ({
+                Component: m.CleaningPage,
+              })),
+          },
+          {
             path: 'reportes',
             lazy: () =>
               import('@/pages/reports-page').then((m) => ({
