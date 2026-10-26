@@ -9,6 +9,11 @@ import type { RoomStatus } from '../../generated/prisma/enums.js';
 import { todayIn } from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  AuthorizationService,
+  type AuthorizationInput,
+} from '../auth/authorization.service.js';
+import { BillingService } from '../billing/billing.service.js';
 import type { WalkInDto } from './dto/stay-operations.dto.js';
 import {
   lockRoomType,
@@ -41,6 +46,8 @@ export class StaysService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reservations: ReservationsService,
+    private readonly billing: BillingService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   /**
@@ -396,7 +403,15 @@ export class StaysService {
     });
   }
 
-  async checkOut(actor: AuthUser, id: string) {
+  /**
+   * Check-out. Si queda saldo pendiente, exige motivo y la autorización de
+   * alguien que pueda autorizar; el saldo queda como cuenta por cobrar.
+   */
+  async checkOut(
+    actor: AuthUser,
+    id: string,
+    input: { balanceReason?: string; authorization?: AuthorizationInput } = {},
+  ) {
     const reservation = await this.findActive(actor, id);
     if (reservation.status !== 'CHECKED_IN' || !reservation.roomId) {
       throw new BadRequestException(
@@ -406,6 +421,25 @@ export class StaysService {
     const ctx = await this.reservations.context(actor);
     const now = new Date();
 
+    const balanceCents = (await this.billing.balances([id])).get(id) ?? 0;
+    let balanceData: Prisma.ReservationUncheckedUpdateInput = {};
+    if (balanceCents > 0) {
+      if (!input.balanceReason) {
+        throw new BadRequestException(
+          'Hay saldo pendiente: cóbralo o indica el motivo para dejarlo como cuenta por cobrar',
+        );
+      }
+      balanceData = {
+        balanceDueCents: balanceCents,
+        balanceReason: input.balanceReason,
+        balanceAuthorizedById: await this.authorization.resolve(
+          actor,
+          input.authorization,
+          'Salir con saldo pendiente',
+        ),
+      };
+    }
+
     return this.prisma.$transaction(async (tx) => {
       await tx.reservation.update({
         where: { id },
@@ -413,6 +447,7 @@ export class StaysService {
           status: 'CHECKED_OUT',
           checkedOutAt: now,
           checkedOutById: actor.id,
+          ...balanceData,
         },
       });
       await releaseRoom(
@@ -468,6 +503,7 @@ export class StaysService {
     ]);
     const now = new Date();
     const localDay = (d: Date) => todayIn(ctx.timeZone, d);
+    const balances = await this.billing.balances(inHouse.map((r) => r.id));
     return {
       today,
       // Llegadas de hoy y llegadas atrasadas que aún pueden hacer check-in.
@@ -480,6 +516,7 @@ export class StaysService {
         ...r,
         departsToday: localDay(r.checkOut) === today,
         overdue: r.checkOut < now,
+        balanceCents: balances.get(r.id) ?? 0,
       })),
     };
   }

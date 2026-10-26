@@ -10,6 +10,8 @@ export const userSelect = {
   employeeNumber: true,
   hireDate: true,
   role: true,
+  canAuthorize: true,
+  canDiscountUnlimited: true,
   isActive: true,
   lastLoginAt: true,
   createdAt: true,
