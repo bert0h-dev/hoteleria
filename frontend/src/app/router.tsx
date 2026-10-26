@@ -63,6 +63,31 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={['ADMIN', 'RECEPTION']} />,
             children: [
               {
+                path: 'reservas',
+                lazy: () =>
+                  import('@/pages/reservations/reservations-layout').then(
+                    (m) => ({
+                      Component: m.ReservationsLayout,
+                    }),
+                  ),
+                children: [
+                  {
+                    index: true,
+                    lazy: () =>
+                      import('@/pages/reservations/reservations-calendar-page').then(
+                        (m) => ({ Component: m.ReservationsCalendarPage }),
+                      ),
+                  },
+                  {
+                    path: 'lista',
+                    lazy: () =>
+                      import('@/pages/reservations/reservations-list-page').then(
+                        (m) => ({ Component: m.ReservationsListPage }),
+                      ),
+                  },
+                ],
+              },
+              {
                 path: 'huespedes',
                 lazy: () =>
                   import('@/pages/guests-page').then((m) => ({

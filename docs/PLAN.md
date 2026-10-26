@@ -28,7 +28,7 @@ en las tablas principales).
   - [x] Frontend: lista, ficha, formulario con aviso de duplicados, datos fiscales y componente "buscar o crear huésped".
 - [ ] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.
   - [x] Backend: reserva por tipo (habitación al llegar), modalidades noche/día/horas en la zona del hotel, precio congelado, disponibilidad con pico de ocupación y candado por tipo, folios, cotizar, calendario, modificar, cancelar y no-show.
-  - [ ] Frontend: calendario de ocupación, nueva reserva, lista y detalle.
+  - [x] Frontend: calendario de ocupación (mapa de calor por tipo y día), llegadas y salidas de hoy, nueva reserva con cotización en vivo, lista, detalle y estancias en la ficha del huésped.
   - [ ] Temporadas y fines de semana (PR siguiente).
 - [ ] **Fase 6 — Check-in / Check-out.**
 - [ ] **Fase 7 — Cobros:** cargos, pagos y folio del huésped.

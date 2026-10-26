@@ -57,6 +57,7 @@ import {
   type Guest,
   type TaxProfile,
 } from '../types';
+import { GuestStays } from '@/features/reservations/components/guest-stays';
 import { GuestBadges } from './guest-badges';
 import { GuestFormDialog } from './guest-form-dialog';
 import { TaxProfileFormDialog } from './tax-profile-form-dialog';
@@ -217,10 +218,7 @@ function GuestDetails({ guest }: { guest: Guest }) {
               <CalendarDays className="size-4 text-primary" />
               Estancias
             </h3>
-            <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-              El historial de estancias aparecerá aquí cuando lleguen las
-              reservas (Fase 5).
-            </p>
+            <GuestStays guestId={guest.id} />
           </section>
         </div>
 

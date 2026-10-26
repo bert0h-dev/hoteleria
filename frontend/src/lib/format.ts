@@ -107,3 +107,28 @@ export function formatDate(iso: string): string {
     timeZone: hotelTimeZone,
   });
 }
+
+/** "28 oct, 15:00" en la zona del hotel. */
+export function formatDayTime(iso: string): string {
+  return new Date(iso).toLocaleString('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: hotelTimeZone,
+  });
+}
+
+/** Partes de una fecha YYYY-MM-DD para encabezados: { weekday: 'lun', day: 28, month: 'oct' }. */
+export function dayParts(date: string) {
+  const d = new Date(`${date}T12:00:00Z`);
+  const fmt = (o: Intl.DateTimeFormatOptions) =>
+    d.toLocaleDateString('es-MX', { ...o, timeZone: 'UTC' }).replace('.', '');
+  return {
+    weekday: fmt({ weekday: 'short' }),
+    day: d.getUTCDate(),
+    month: fmt({ month: 'short' }),
+    isWeekend: d.getUTCDay() === 0 || d.getUTCDay() === 6,
+  };
+}
