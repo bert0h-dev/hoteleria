@@ -60,6 +60,18 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            element: <RequireRole roles={['ADMIN', 'RECEPTION']} />,
+            children: [
+              {
+                path: 'huespedes',
+                lazy: () =>
+                  import('@/pages/guests-page').then((m) => ({
+                    Component: m.GuestsPage,
+                  })),
+              },
+            ],
+          },
+          {
             element: <RequireRole roles={['ADMIN']} />,
             children: [
               {
