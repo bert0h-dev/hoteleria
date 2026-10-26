@@ -12,8 +12,11 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { RoomStatus } from '../../../generated/prisma/enums.js';
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 const trimOrNull = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() || null : value;
@@ -72,6 +75,17 @@ export class ChangeRoomStatusDto {
   reason?: string | null;
 
   @ApiPropertyOptional({
+    example: '2026-10-28',
+    description:
+      'Mantenimiento (obligatoria) / Fuera de servicio (opcional): último día bloqueado',
+  })
+  @IsOptional()
+  @Matches(DATE_ONLY, {
+    message: 'La fecha estimada debe tener el formato AAAA-MM-DD',
+  })
+  blockedUntil?: string;
+
+  @ApiPropertyOptional({
     description:
       'Al terminar una limpieza: quién limpió (si no se indica, quien hace el cambio)',
   })
@@ -80,7 +94,27 @@ export class ChangeRoomStatusDto {
   cleanedById?: string;
 }
 
+export class UpdateBlockedUntilDto {
+  @ApiProperty({
+    example: '2026-11-02',
+    nullable: true,
+    description:
+      'Nueva fecha estimada; null = indefinido (solo Fuera de servicio)',
+  })
+  @ValidateIf((_, value) => value !== null)
+  @Matches(DATE_ONLY, {
+    message: 'La fecha estimada debe tener el formato AAAA-MM-DD',
+  })
+  blockedUntil: string | null;
+}
+
 export class QueryRoomsDto {
+  @ApiPropertyOptional({ description: 'true: solo bloqueos vencidos' })
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean({ message: 'overdue debe ser true o false' })
+  overdue?: boolean;
+
   @ApiPropertyOptional({ enum: RoomStatus, enumName: 'RoomStatus' })
   @IsOptional()
   @IsEnum(RoomStatus, { message: 'El estado no es válido' })

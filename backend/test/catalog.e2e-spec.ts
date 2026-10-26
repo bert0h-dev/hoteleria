@@ -7,6 +7,14 @@ import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { configureApp } from './../src/app.setup.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
+import { todayIn } from './../src/common/time/hotel-date.js';
+
+/** Fecha (YYYY-MM-DD) a n días de hoy en la zona por defecto del hotel. */
+function inDays(n: number): string {
+  const d = new Date(`${todayIn('America/Mexico_City')}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 // Crea su propio hotel con usuarios de cada rol y lo borra al terminar.
 describe('Configuración y catálogo de habitaciones (e2e)', () => {
@@ -218,6 +226,7 @@ describe('Configuración y catálogo de habitaciones (e2e)', () => {
       .patch(`/api/rooms/${roomId}/status`, {
         status: 'MAINTENANCE',
         reason: 'Revisión',
+        blockedUntil: inDays(1),
         cleanedById: housekeeperId,
       })
       .expect(400);
@@ -235,6 +244,7 @@ describe('Configuración y catálogo de habitaciones (e2e)', () => {
       .patch(`/api/rooms/${roomId}/status`, {
         status: 'MAINTENANCE',
         reason: 'Fuga en el lavabo',
+        blockedUntil: inDays(2),
       })
       .expect(200);
     await as('recep')
@@ -305,6 +315,130 @@ describe('Configuración y catálogo de habitaciones (e2e)', () => {
       })
       .expect(201);
     expect(single.body.includedAdults).toBe(1);
+  });
+
+  it('mantenimiento exige fecha estimada y no acepta fechas pasadas', async () => {
+    const url = `/api/rooms/${roomId}/status`;
+    const sinFecha = await as('recep')
+      .patch(url, { status: 'MAINTENANCE', reason: 'Pintura' })
+      .expect(400);
+    expect(sinFecha.body.message).toBe(
+      'Indica hasta qué fecha estará en «Mantenimiento»',
+    );
+    const pasada = await as('recep')
+      .patch(url, {
+        status: 'MAINTENANCE',
+        reason: 'Pintura',
+        blockedUntil: inDays(-1),
+      })
+      .expect(400);
+    expect(pasada.body.message).toBe(
+      'La fecha estimada no puede estar en el pasado',
+    );
+    const formato = await as('recep')
+      .patch(url, {
+        status: 'MAINTENANCE',
+        reason: 'Pintura',
+        blockedUntil: '28/10/2026',
+      })
+      .expect(400);
+    expect(formato.body.message).toContain(
+      'La fecha estimada debe tener el formato AAAA-MM-DD',
+    );
+
+    const ok = await as('recep')
+      .patch(url, {
+        status: 'MAINTENANCE',
+        reason: 'Pintura',
+        blockedUntil: inDays(3),
+      })
+      .expect(200);
+    expect(ok.body).toMatchObject({
+      blockedUntil: inDays(3),
+      blockOverdue: false,
+    });
+  });
+
+  it('ajusta la fecha sin cambiar el estado y lo registra en el historial', async () => {
+    const res = await as('recep')
+      .patch(`/api/rooms/${roomId}/blocked-until`, { blockedUntil: inDays(7) })
+      .expect(200);
+    expect(res.body).toMatchObject({
+      status: 'MAINTENANCE',
+      blockedUntil: inDays(7),
+    });
+
+    const history = await as('recep')
+      .get(`/api/rooms/${roomId}/history`)
+      .expect(200);
+    expect(history.body[0]).toMatchObject({
+      fromStatus: 'MAINTENANCE',
+      toStatus: 'MAINTENANCE',
+      previousBlockedUntil: inDays(3),
+      blockedUntil: inDays(7),
+    });
+
+    // Mantenimiento no puede quedar indefinido; limpieza no puede ajustar.
+    await as('recep')
+      .patch(`/api/rooms/${roomId}/blocked-until`, { blockedUntil: null })
+      .expect(400);
+    await as('limpieza')
+      .patch(`/api/rooms/${roomId}/blocked-until`, { blockedUntil: inDays(8) })
+      .expect(403);
+  });
+
+  it('fuera de servicio puede ser indefinido y la fecha se borra al liberar', async () => {
+    const url = `/api/rooms/${roomId}/status`;
+    const oos = await as('recep')
+      .patch(url, { status: 'OUT_OF_SERVICE', reason: 'Remodelación' })
+      .expect(200);
+    expect(oos.body.blockedUntil).toBeNull();
+
+    const freed = await as('recep')
+      .patch(url, { status: 'AVAILABLE' })
+      .expect(200);
+    expect(freed.body.blockedUntil).toBeNull();
+
+    const conFecha = await as('recep')
+      .patch(url, { status: 'CLEANING', blockedUntil: inDays(1) })
+      .expect(400);
+    expect(conFecha.body.message).toMatch(/solo aplica/);
+  });
+
+  it('marca y cuenta los bloqueos vencidos', async () => {
+    // Simula un bloqueo cuya fecha ya pasó.
+    await prisma.room.update({
+      where: { id: roomId },
+      data: {
+        status: 'MAINTENANCE',
+        blockedUntil: new Date(`${inDays(-2)}T00:00:00Z`),
+      },
+    });
+    const rooms = await as('recep').get('/api/rooms?overdue=true').expect(200);
+    expect(rooms.body).toHaveLength(1);
+    expect(rooms.body[0].blockOverdue).toBe(true);
+
+    const summary = await as('recep').get('/api/rooms/summary').expect(200);
+    expect(summary.body.overdue).toBe(1);
+
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { status: 'AVAILABLE', blockedUntil: null },
+    });
+  });
+
+  it('valida la zona horaria del hotel', async () => {
+    const bad = await as('admin')
+      .patch('/api/hotel', { timezone: 'Mexico/Nada' })
+      .expect(400);
+    expect(bad.body.message).toContain('La zona horaria no es válida');
+    const ok = await as('admin')
+      .patch('/api/hotel', { timezone: 'America/Cancun' })
+      .expect(200);
+    expect(ok.body.timezone).toBe('America/Cancun');
+    await as('admin')
+      .patch('/api/hotel', { timezone: 'America/Mexico_City' })
+      .expect(200);
   });
 
   it('resume las habitaciones por estado', async () => {

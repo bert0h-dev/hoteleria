@@ -35,11 +35,13 @@ PR separados.
       de 8 horas la estancia por horas iguala o supera el día.
 
 ### 4. Mantenimiento con fechas
-- [ ] **Fecha estimada de fin** al pasar a Mantenimiento o Fuera de servicio,
+- [x] **Fecha estimada de fin** al pasar a Mantenimiento o Fuera de servicio,
       para que las reservas no vendan esa habitación en esas fechas.
+      Obligatoria en Mantenimiento, opcional (indefinido) en Fuera de servicio;
+      al vencer solo se marca como vencido.
 
 ### 5. Zona horaria editable
-- [ ] Permitir cambiar la **zona horaria** del hotel (ya existe el campo
+- [x] Permitir cambiar la **zona horaria** del hotel (ya existe el campo
       `timezone`). Clave para calcular entradas y salidas.
 
 ### 6. Mi perfil

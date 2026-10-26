@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Outlet } from 'react-router';
 import { Menu } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { useHotel } from '@/features/hotel/hotel-api';
+import { setHotelTimeZone } from '@/lib/format';
 import { ThemePicker } from '@/features/theme/theme-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +18,9 @@ import { UserMenu } from './user-menu';
 
 export function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: hotel } = useHotel();
+  // Antes de pintar las páginas, para que todas usen la zona del hotel.
+  if (hotel) setHotelTimeZone(hotel.timezone);
 
   return (
     <div className="min-h-svh bg-background">

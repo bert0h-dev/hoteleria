@@ -170,6 +170,9 @@ model Room {
   isActive        Boolean    @default(true) @map("is_active")
   lastCleanedAt   DateTime?  @map("last_cleaned_at")
   lastCleanedById String?    @map("last_cleaned_by_id") @db.Uuid
+  /// En Mantenimiento / Fuera de servicio: último día (inclusive) que estará
+  /// bloqueada. Null en Fuera de servicio = indefinido.
+  blockedUntil    DateTime?  @map("blocked_until") @db.Date
   createdAt       DateTime   @default(now()) @map("created_at")
   updatedAt       DateTime   @updatedAt @map("updated_at")
 
@@ -187,16 +190,20 @@ model Room {
 /// Historial de cambios de estado. Si el cambio termina una limpieza
 /// (CLEANING → AVAILABLE), guarda quién limpió y cuándo.
 model RoomStatusLog {
-  id          String     @id @default(uuid()) @db.Uuid
-  hotelId     String     @map("hotel_id") @db.Uuid
-  roomId      String     @map("room_id") @db.Uuid
-  fromStatus  RoomStatus @map("from_status")
-  toStatus    RoomStatus @map("to_status")
-  reason      String?
-  changedById String     @map("changed_by_id") @db.Uuid
-  cleanedById String?    @map("cleaned_by_id") @db.Uuid
-  cleanedAt   DateTime?  @map("cleaned_at")
-  createdAt   DateTime   @default(now()) @map("created_at")
+  id                   String     @id @default(uuid()) @db.Uuid
+  hotelId              String     @map("hotel_id") @db.Uuid
+  roomId               String     @map("room_id") @db.Uuid
+  fromStatus           RoomStatus @map("from_status")
+  toStatus             RoomStatus @map("to_status")
+  reason               String?
+  changedById          String     @map("changed_by_id") @db.Uuid
+  cleanedById          String?    @map("cleaned_by_id") @db.Uuid
+  cleanedAt            DateTime?  @map("cleaned_at")
+  /// Fecha estimada de fin indicada en este cambio. Si fromStatus = toStatus,
+  /// el registro es un ajuste de fecha (previousBlockedUntil → blockedUntil).
+  blockedUntil         DateTime?  @map("blocked_until") @db.Date
+  previousBlockedUntil DateTime?  @map("previous_blocked_until") @db.Date
+  createdAt            DateTime   @default(now()) @map("created_at")
 
   hotel     Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
   room      Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)

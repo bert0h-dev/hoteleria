@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Baby,
   Building2,
+  Globe,
   Receipt,
   CalendarRange,
   Calculator,
@@ -48,6 +49,7 @@ import {
   hoursUntilDayRate,
 } from '@/features/hotel/pricing';
 import { TaxBreakdown } from '@/features/hotel/tax-breakdown';
+import { TimeZoneSelect } from '@/features/hotel/time-zone-select';
 import { RatesGrid } from '@/features/rooms/components/rates-grid';
 import { getErrorMessage } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
@@ -476,6 +478,7 @@ const hotelSchema = z.object({
       (v) => !v || z.email().safeParse(v).success,
       'El correo no es válido',
     ),
+  timezone: z.string().min(1, 'Elige la zona horaria'),
 });
 
 type HotelValues = z.infer<typeof hotelSchema>;
@@ -488,6 +491,7 @@ function toHotelValues(hotel: Hotel): HotelValues {
     address: hotel.address ?? '',
     phone: hotel.phone ?? '',
     email: hotel.email ?? '',
+    timezone: hotel.timezone,
   };
 }
 
@@ -495,6 +499,7 @@ function HotelForm({ hotel }: { hotel: Hotel }) {
   const update = useUpdateHotel();
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting, isDirty },
@@ -515,6 +520,7 @@ function HotelForm({ hotel }: { hotel: Hotel }) {
         address: values.address || null,
         phone: values.phone || null,
         email: values.email || null,
+        timezone: values.timezone,
       });
       toast.success('Datos del hotel guardados');
     } catch (error) {
@@ -566,6 +572,29 @@ function HotelForm({ hotel }: { hotel: Hotel }) {
                 <FieldError errors={[errors[f.name]]} />
               </Field>
             ))}
+            <Field data-invalid={!!errors.timezone}>
+              <FieldLabel
+                htmlFor="hotel-timezone"
+                className="flex items-center gap-1.5"
+              >
+                <Globe className="size-3.5" /> Zona horaria
+              </FieldLabel>
+              <Controller
+                control={control}
+                name="timezone"
+                render={({ field }) => (
+                  <TimeZoneSelect
+                    id="hotel-timezone"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+              <FieldDescription>
+                Todas las fechas y horas del sistema se muestran en esta zona.
+              </FieldDescription>
+              <FieldError errors={[errors.timezone]} />
+            </Field>
           </FieldGroup>
         </CardContent>
         <CardFooter className="mt-6 justify-end border-t pt-6">

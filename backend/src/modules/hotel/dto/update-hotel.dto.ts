@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsTimeZone,
   MaxLength,
 } from 'class-validator';
 
@@ -59,4 +60,9 @@ export class UpdateHotelDto {
   @Transform(trimOrNull)
   @IsEmail({}, { message: 'El correo no es válido' })
   email?: string | null;
+
+  @ApiPropertyOptional({ example: 'America/Mexico_City' })
+  @IsOptional()
+  @IsTimeZone({ message: 'La zona horaria no es válida' })
+  timezone?: string;
 }

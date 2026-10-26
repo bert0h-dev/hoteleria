@@ -47,6 +47,9 @@ export interface Room {
   isActive: boolean;
   lastCleanedAt: string | null;
   lastCleanedBy: Person | null;
+  /** Último día (YYYY-MM-DD) del bloqueo; null = indefinido o sin bloqueo. */
+  blockedUntil: string | null;
+  blockOverdue: boolean;
   roomType: Pick<RoomType, 'id' | 'name' | 'nightlyRate'>;
 }
 
@@ -59,9 +62,12 @@ export interface RoomStatusLog {
   cleanedAt: string | null;
   changedBy: Person;
   cleanedBy: Person | null;
+  blockedUntil: string | null;
+  previousBlockedUntil: string | null;
 }
 
 export interface RoomSummary {
   total: number;
   byStatus: Record<RoomStatus, number>;
+  overdue: number;
 }
