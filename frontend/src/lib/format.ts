@@ -99,3 +99,11 @@ export function timeIn(timeZone: string, now = new Date()): string {
     hourCycle: 'h23',
   }).format(now);
 }
+
+/** Fecha de un instante (ISO) en la zona del hotel: "25 oct 2026". */
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-MX', {
+    dateStyle: 'medium',
+    timeZone: hotelTimeZone,
+  });
+}

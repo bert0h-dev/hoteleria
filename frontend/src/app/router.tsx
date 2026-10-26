@@ -30,6 +30,13 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <HomePage /> },
           {
+            path: 'perfil',
+            lazy: () =>
+              import('@/pages/profile-page').then((m) => ({
+                Component: m.ProfilePage,
+              })),
+          },
+          {
             path: 'habitaciones',
             lazy: () =>
               import('@/pages/rooms/rooms-layout').then((m) => ({

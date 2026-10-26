@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const PASSWORD_MIN_LENGTH = 8;
 
-const name = z
+export const nameField = z
   .string()
   .trim()
   .min(1, 'Escribe el nombre')
@@ -12,7 +12,7 @@ const role = z.enum(['ADMIN', 'RECEPTION', 'HOUSEKEEPING'], {
   error: 'Selecciona un rol',
 });
 
-const password = z
+export const passwordField = z
   .string()
   .min(
     PASSWORD_MIN_LENGTH,
@@ -20,8 +20,27 @@ const password = z
   )
   .max(128, 'La contraseña no puede pasar de 128 caracteres');
 
+/** Opcional: vacío o un teléfono válido. */
+export const phoneField = z
+  .string()
+  .trim()
+  .refine(
+    (v) => !v || /^[0-9+()\s-]{7,20}$/.test(v),
+    'Usa solo números, espacios, +, ( ) y guiones (7 a 20 caracteres)',
+  );
+
+const employeeData = {
+  phone: phoneField,
+  employeeNumber: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .max(20, 'Máximo 20 caracteres'),
+  hireDate: z.string(),
+};
+
 export const createUserSchema = z.object({
-  name,
+  name: nameField,
   email: z
     .string()
     .trim()
@@ -29,13 +48,18 @@ export const createUserSchema = z.object({
     .min(1, 'Escribe el correo')
     .pipe(z.email('El correo no es válido')),
   role,
-  password,
+  password: passwordField,
+  ...employeeData,
 });
 
-export const editUserSchema = z.object({ name, role });
+export const editUserSchema = z.object({
+  name: nameField,
+  role,
+  ...employeeData,
+});
 
 export const changePasswordSchema = z
-  .object({ password, confirm: z.string() })
+  .object({ password: passwordField, confirm: z.string() })
   .refine((v) => v.password === v.confirm, {
     path: ['confirm'],
     message: 'Las contraseñas no coinciden',

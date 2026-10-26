@@ -1,13 +1,21 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { verify } from '@node-rs/argon2';
+import { hash, verify } from '@node-rs/argon2';
 import type { Env } from '../../config/env.validation.js';
 import type { JwtPayload } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { userSelect, type PublicUser } from '../users/user.select.js';
 import type { LoginDto } from './dto/login.dto.js';
+import type {
+  ChangeOwnPasswordDto,
+  UpdateProfileDto,
+} from './dto/profile.dto.js';
 
 export interface ClientMeta {
   userAgent?: string;
@@ -55,10 +63,10 @@ export class AuthService {
     });
     if (!stored) throw new UnauthorizedException(INVALID_SESSION);
 
-    // Si un token ya revocado se vuelve a usar, puede haber sido robado:
-    // se cierran todas las sesiones del usuario.
     if (stored.revokedAt) {
-      await this.revokeAll(stored.userId);
+      // Si un token ya rotado se vuelve a usar, puede haber sido robado:
+      // se cierran todas las sesiones del usuario.
+      if (stored.rotated) await this.revokeAll(stored.userId);
       throw new UnauthorizedException(INVALID_SESSION);
     }
     if (stored.expiresAt <= new Date() || !stored.user.isActive) {
@@ -67,7 +75,7 @@ export class AuthService {
 
     const { count } = await this.prisma.refreshToken.updateMany({
       where: { id: stored.id, revokedAt: null },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: new Date(), rotated: true },
     });
     if (count === 0) throw new UnauthorizedException(INVALID_SESSION);
 
@@ -89,6 +97,59 @@ export class AuthService {
     });
     if (!user?.isActive) throw new UnauthorizedException(INVALID_SESSION);
     return user;
+  }
+
+  /** El usuario actualiza sus propios datos (nombre y teléfono). */
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<PublicUser> {
+    await this.me(userId);
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { name: dto.name, phone: dto.phone },
+      select: userSelect,
+    });
+  }
+
+  /**
+   * El usuario cambia su propia contraseña. Exige la actual y cierra sus
+   * demás sesiones; la sesión desde la que se hace el cambio sigue abierta.
+   */
+  async changeOwnPassword(
+    userId: string,
+    dto: ChangeOwnPasswordDto,
+    currentRefreshToken: string | undefined,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.isActive) throw new UnauthorizedException(INVALID_SESSION);
+
+    if (!(await verify(user.passwordHash, dto.currentPassword))) {
+      throw new BadRequestException('La contraseña actual es incorrecta');
+    }
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'La nueva contraseña debe ser distinta a la actual',
+      );
+    }
+
+    const keepHash = currentRefreshToken
+      ? hashToken(currentRefreshToken)
+      : undefined;
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: await hash(dto.newPassword) },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+          ...(keepHash && { tokenHash: { not: keepHash } }),
+        },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   /** Revoca todas las sesiones abiertas de un usuario. */

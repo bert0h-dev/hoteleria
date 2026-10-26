@@ -8,6 +8,7 @@ import { hash } from '@node-rs/argon2';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
+import { toDbDate } from '../../common/time/hotel-date.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
@@ -70,6 +71,9 @@ export class UsersService {
           name: dto.name,
           email: dto.email,
           role: dto.role,
+          phone: dto.phone,
+          employeeNumber: dto.employeeNumber,
+          hireDate: dto.hireDate ? toDbDate(dto.hireDate) : dto.hireDate,
           passwordHash: await hash(dto.password),
         },
         select: userSelect,
@@ -96,11 +100,22 @@ export class UsersService {
       }
     }
 
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: dto,
-      select: userSelect,
-    });
+    const user = await this.prisma.user
+      .update({
+        where: { id },
+        data: {
+          name: dto.name,
+          role: dto.role,
+          isActive: dto.isActive,
+          phone: dto.phone,
+          employeeNumber: dto.employeeNumber,
+          hireDate: dto.hireDate ? toDbDate(dto.hireDate) : dto.hireDate,
+        },
+        select: userSelect,
+      })
+      .catch((error: unknown) => {
+        throw mapUniqueEmail(error);
+      });
     if (dto.isActive === false) await this.auth.revokeAll(id);
     return user;
   }
@@ -125,7 +140,13 @@ function mapUniqueEmail(error: unknown): unknown {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2002'
   ) {
-    return new ConflictException('Ya existe un usuario con ese correo');
+    // El índice único que falló dice qué campo está repetido.
+    const target = JSON.stringify(error.meta ?? {});
+    return new ConflictException(
+      target.includes('employee')
+        ? 'Ya existe un usuario con ese número de empleado'
+        : 'Ya existe un usuario con ese correo',
+    );
   }
   return error;
 }

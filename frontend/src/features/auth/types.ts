@@ -5,6 +5,10 @@ export interface User {
   hotelId: string;
   name: string;
   email: string;
+  phone: string | null;
+  employeeNumber: string | null;
+  /** Fecha de ingreso laboral (ISO; solo importa la parte YYYY-MM-DD). */
+  hireDate: string | null;
   role: Role;
   isActive: boolean;
   lastLoginAt: string | null;

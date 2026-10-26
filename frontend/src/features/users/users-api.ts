@@ -22,14 +22,20 @@ export interface Paginated<T> {
   limit: number;
 }
 
-export interface CreateUserInput {
+interface EmployeeInput {
+  phone?: string | null;
+  employeeNumber?: string | null;
+  hireDate?: string | null;
+}
+
+export interface CreateUserInput extends EmployeeInput {
   name: string;
   email: string;
   password: string;
   role: Role;
 }
 
-export interface UpdateUserInput {
+export interface UpdateUserInput extends EmployeeInput {
   name?: string;
   role?: Role;
   isActive?: boolean;

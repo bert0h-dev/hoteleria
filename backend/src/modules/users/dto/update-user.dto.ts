@@ -3,7 +3,13 @@ import { IsBoolean, IsOptional } from 'class-validator';
 import { CreateUserDto } from './create-user.dto.js';
 
 export class UpdateUserDto extends PartialType(
-  PickType(CreateUserDto, ['name', 'role'] as const),
+  PickType(CreateUserDto, [
+    'name',
+    'role',
+    'phone',
+    'employeeNumber',
+    'hireDate',
+  ] as const),
 ) {
   @ApiPropertyOptional({ description: 'false desactiva al usuario' })
   @IsOptional()
