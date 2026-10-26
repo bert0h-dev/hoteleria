@@ -61,6 +61,8 @@ export class HotelService {
         vatPercent: dto.vatPercent,
         lodgingTaxPercent: dto.lodgingTaxPercent,
         childMaxAge: dto.childMaxAge,
+        weekdayAdjustDays: dto.weekdayAdjustDays,
+        weekdayAdjustPercent: dto.weekdayAdjustPercent,
       },
       update: dto,
     });

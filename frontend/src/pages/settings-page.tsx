@@ -13,6 +13,7 @@ import {
   Moon,
   Sun,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { PageHeader } from '@/components/page-header';
@@ -50,33 +51,63 @@ import {
 } from '@/features/hotel/pricing';
 import { TaxBreakdown } from '@/features/hotel/tax-breakdown';
 import { TimeZoneSelect } from '@/features/hotel/time-zone-select';
+import { SeasonsSettings } from '@/features/hotel/seasons-settings';
 import { RatesGrid } from '@/features/rooms/components/rates-grid';
 import { getErrorMessage } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
+import { cn } from '@/lib/utils';
+
+const TABS = [
+  { id: 'hotel', label: 'Datos del hotel', icon: Building2 },
+  { id: 'tarifas', label: 'Tarifas y horarios', icon: Calculator },
+  { id: 'temporadas', label: 'Temporadas y días', icon: CalendarRange },
+] as const;
+type TabId = (typeof TABS)[number]['id'];
 
 export function SettingsPage() {
   const { data: hotel, isLoading } = useHotel();
+  // La pestaña vive en la URL (?tab=…) para poder compartirla o recargar.
+  const [params, setParams] = useSearchParams();
+  const tab: TabId =
+    TABS.find((t) => t.id === params.get('tab'))?.id ?? 'hotel';
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Configuración"
-        description="Datos del hotel, tarifas y horarios."
+        description="Datos del hotel, tarifas, horarios y temporadas."
       />
+
+      <nav className="flex gap-1 overflow-x-auto rounded-xl border bg-muted/50 p-1 sm:inline-flex">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={tab === id}
+            onClick={() => setParams({ tab: id }, { replace: true })}
+            className={cn(
+              'flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-all hover:text-foreground',
+              tab === id && 'bg-background text-foreground shadow-sm',
+            )}
+          >
+            <Icon className="size-4" />
+            {label}
+          </button>
+        ))}
+      </nav>
+
       {isLoading || !hotel ? (
-        <div className="grid gap-6 xl:grid-cols-5">
-          <Skeleton className="h-96 rounded-xl xl:col-span-3" />
-          <Skeleton className="h-96 rounded-xl xl:col-span-2" />
+        <Skeleton className="h-96 rounded-xl" />
+      ) : tab === 'hotel' ? (
+        <div className="max-w-2xl">
+          <HotelForm hotel={hotel} />
+        </div>
+      ) : tab === 'tarifas' ? (
+        <div className="max-w-4xl">
+          <RatesForm hotel={hotel} />
         </div>
       ) : (
-        <div className="grid items-start gap-6 xl:grid-cols-5">
-          <div className="xl:col-span-3">
-            <RatesForm hotel={hotel} />
-          </div>
-          <div className="xl:col-span-2">
-            <HotelForm hotel={hotel} />
-          </div>
-        </div>
+        <SeasonsSettings hotel={hotel} />
       )}
     </div>
   );

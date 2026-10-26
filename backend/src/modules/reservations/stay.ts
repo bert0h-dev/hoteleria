@@ -2,16 +2,24 @@
  * Cálculo de una estancia: entrada, salida y precio según la modalidad.
  * Funciones puras (sin base de datos) para poder probarlas a fondo.
  */
-import { daysBetween, zonedToUtc } from '../../common/time/hotel-date.js';
+import {
+  addDaysTo,
+  daysBetween,
+  zonedToUtc,
+} from '../../common/time/hotel-date.js';
 import {
   calculateExtraGuests,
   calculateHourlyStay,
-  calculateNightlyStay,
   calculateRates,
   calculateTaxBreakdown,
+  calculateVariableNightlyStay,
+  priceNights,
   type ExtraGuestRates,
+  type NightPrice,
   type PricingSettings,
+  type SeasonRule,
   type TaxSettings,
+  type WeekdayRule,
 } from '../pricing/pricing.js';
 
 export type Modality = 'NIGHTLY' | 'DAILY' | 'HOURLY';
@@ -100,40 +108,74 @@ export interface Quote {
     /** HOURLY: horas cobradas (mínimo) y si se aplicó el tope del día. */
     billedHours?: number;
     cappedAtDay?: boolean;
+    /** NIGHTLY: precio de cada noche (con su temporada o ajuste). */
+    nights?: NightPrice[];
+    /** DAILY/HOURLY: precio por noche ajustado del día de entrada. */
+    rateDay?: NightPrice;
     extraAdults: number;
     extrasPerUnit: number;
     taxes: ReturnType<typeof calculateTaxBreakdown>;
   };
 }
 
-/** Precio de una estancia para un tipo de habitación. */
+/** Temporadas y ajuste por día de la semana vigentes para cotizar. */
+export interface PriceCalendar {
+  /** Fecha de llegada (YYYY-MM-DD) en la zona del hotel. */
+  arrivalDate: string;
+  seasons: SeasonRule[];
+  weekday?: WeekdayRule;
+}
+
+/**
+ * Precio de una estancia para un tipo de habitación.
+ * - Por noche: cada noche con su temporada o ajuste por día de la semana.
+ * - Por día u horas: se usa el precio ajustado del día de entrada.
+ * Las personas extra no cambian con la temporada.
+ */
 export function computeQuote(
   type: QuoteRoomType,
   stay: Pick<Stay, 'units'>,
   modality: Modality,
   guests: { adults: number; children: number },
   settings: StaySettings,
+  calendar?: PriceCalendar,
 ): Quote {
-  const rates = calculateRates(type.nightlyRate, settings);
   let baseAmount: number;
   const detail: Partial<Quote['detail']> = { modality, units: stay.units };
+  const seasons = calendar?.seasons ?? [];
+  const arrival = calendar?.arrivalDate ?? '2000-01-01';
 
   if (modality === 'NIGHTLY') {
-    const nightly = calculateNightlyStay(
-      stay.units,
-      type.nightlyRate,
-      settings,
+    const dates = Array.from({ length: stay.units }, (_, i) =>
+      addDaysTo(arrival, i),
     );
+    const nights = priceNights(
+      type.nightlyRate,
+      dates,
+      seasons,
+      calendar?.weekday,
+    );
+    const nightly = calculateVariableNightlyStay(nights, settings);
     baseAmount = nightly.total;
     detail.weeks = nightly.weeks;
     detail.extraNights = nightly.extraNights;
-  } else if (modality === 'DAILY') {
-    baseAmount = rates.daily * stay.units;
+    detail.nights = nights;
   } else {
-    const hourly = calculateHourlyStay(stay.units, type.nightlyRate, settings);
-    baseAmount = hourly.total;
-    detail.billedHours = hourly.billedHours;
-    detail.cappedAtDay = hourly.cappedAtDay;
+    const [rateDay] = priceNights(
+      type.nightlyRate,
+      [arrival],
+      seasons,
+      calendar?.weekday,
+    );
+    detail.rateDay = rateDay;
+    if (modality === 'DAILY') {
+      baseAmount = calculateRates(rateDay.rate, settings).daily * stay.units;
+    } else {
+      const hourly = calculateHourlyStay(stay.units, rateDay.rate, settings);
+      baseAmount = hourly.total;
+      detail.billedHours = hourly.billedHours;
+      detail.cappedAtDay = hourly.cappedAtDay;
+    }
   }
 
   const extras = calculateExtraGuests(guests, type, {

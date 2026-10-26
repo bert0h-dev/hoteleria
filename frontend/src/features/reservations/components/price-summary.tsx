@@ -1,3 +1,5 @@
+import type { NightPrice } from '@/features/hotel/pricing';
+import { formatPercent } from '@/features/hotel/rate-periods-api';
 import { formatMoney, formatMoneyCents } from '@/lib/format';
 import { unitLabel, type Modality, type QuoteDetail } from '../types';
 
@@ -30,8 +32,37 @@ export function PriceSummary({
             }`
         : unitLabel(modality, detail.units);
 
+  const adjustedNights = detail.nights?.some((n) => n.source !== 'base')
+    ? groupNights(detail.nights)
+    : null;
+  const rateDay =
+    detail.rateDay && detail.rateDay.source !== 'base' ? detail.rateDay : null;
+
   return (
     <dl className="space-y-1.5 text-sm tabular-nums">
+      {adjustedNights && (
+        <div className="space-y-1 rounded-lg bg-muted/50 p-2 text-xs">
+          {adjustedNights.map((g) => (
+            <div key={g.key} className="flex justify-between gap-3">
+              <span className="text-muted-foreground">
+                {g.count} × {formatMoney(g.rate)} · {g.label}
+              </span>
+              <span>{formatMoney(g.count * g.rate)}</span>
+            </div>
+          ))}
+          {detail.weeks ? (
+            <p className="text-muted-foreground">
+              Incluye precio de semana por bloques de 7 noches.
+            </p>
+          ) : null}
+        </div>
+      )}
+      {rateDay && (
+        <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
+          Precio por noche del día de entrada: {formatMoney(rateDay.rate)} ·{' '}
+          {nightLabel(rateDay)}
+        </p>
+      )}
       <Row label={`Hospedaje · ${baseLabel}`} value={formatMoney(baseAmount)} />
       {extrasAmount > 0 && (
         <Row
@@ -58,4 +89,28 @@ function Row({ label, value }: { label: string; value: string }) {
       <dd className="shrink-0 text-foreground">{value}</dd>
     </div>
   );
+}
+
+function nightLabel(n: NightPrice) {
+  return n.source === 'season'
+    ? `${n.seasonName} ${formatPercent(n.adjustmentPercent)}`
+    : n.source === 'weekday'
+      ? `ajuste por día ${formatPercent(n.adjustmentPercent)}`
+      : 'precio base';
+}
+
+/** Agrupa las noches con el mismo precio y la misma regla. */
+function groupNights(nights: NightPrice[]) {
+  const groups = new Map<
+    string,
+    { key: string; rate: number; label: string; count: number }
+  >();
+  for (const n of nights) {
+    const label = nightLabel(n);
+    const key = `${n.rate}|${label}`;
+    const g = groups.get(key) ?? { key, rate: n.rate, label, count: 0 };
+    g.count++;
+    groups.set(key, g);
+  }
+  return [...groups.values()];
 }

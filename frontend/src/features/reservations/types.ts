@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import type { Guest } from '@/features/guests/types';
 import type { Amenity } from '@/features/rooms/types';
-import type { TaxBreakdown } from '@/features/hotel/pricing';
+import type { NightPrice, TaxBreakdown } from '@/features/hotel/pricing';
+import type { RatePeriod } from '@/features/hotel/rate-periods-api';
 
 export type Modality = 'NIGHTLY' | 'DAILY' | 'HOURLY';
 export type ReservationStatus =
@@ -79,6 +80,8 @@ export interface QuoteDetail {
   extraNights?: number;
   billedHours?: number;
   cappedAtDay?: boolean;
+  nights?: NightPrice[];
+  rateDay?: NightPrice;
   extraAdults: number;
   extrasPerUnit: number;
   taxes: TaxBreakdown;
@@ -175,4 +178,6 @@ export interface CalendarData {
     days: CalendarDay[];
   }[];
   reservations: Reservation[];
+  seasons: RatePeriod[];
+  weekday: { days: number[]; percent: number };
 }
