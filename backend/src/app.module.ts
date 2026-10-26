@@ -15,6 +15,7 @@ import { HealthModule } from './modules/health/health.module.js';
 import { RatePeriodsModule } from './modules/rate-periods/rate-periods.module.js';
 import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { HotelModule } from './modules/hotel/hotel.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 import { RoomTypesModule } from './modules/room-types/room-types.module.js';
 import { RoomsModule } from './modules/rooms/rooms.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -41,6 +42,7 @@ import { UsersModule } from './modules/users/users.module.js';
     BillingModule,
     CashModule,
     DashboardModule,
+    ReportsModule,
     CatalogsModule,
     HealthModule,
   ],

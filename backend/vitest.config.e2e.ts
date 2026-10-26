@@ -8,5 +8,6 @@ export default defineConfig({
     include: ['**/*.e2e-spec.ts'],
     // Varias llamadas por prueba contra una base remota.
     testTimeout: 20_000,
+    hookTimeout: 60_000,
   },
 });

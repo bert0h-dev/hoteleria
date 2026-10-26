@@ -61,6 +61,13 @@ export const router = createBrowserRouter([
               })),
           },
           {
+            path: 'reportes',
+            lazy: () =>
+              import('@/pages/reports-page').then((m) => ({
+                Component: m.ReportsPage,
+              })),
+          },
+          {
             path: 'habitaciones',
             lazy: () =>
               import('@/pages/rooms/rooms-layout').then((m) => ({

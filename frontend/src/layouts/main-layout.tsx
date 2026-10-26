@@ -27,7 +27,7 @@ export function MainLayout() {
   return (
     <div className="min-h-svh bg-background">
       {/* Menú lateral (escritorio) */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 print:hidden! flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="flex h-16 items-center px-5">
           <Logo subtitle="Panel de gestión" />
         </div>
@@ -35,9 +35,9 @@ export function MainLayout() {
           <SidebarNav />
         </div>
         <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
-          <p className="text-sm font-medium">Fase 7 de 9</p>
+          <p className="text-sm font-medium">Fase 8 de 9</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Pronto: tablero y reportes.
+            Pronto: limpieza y mantenimiento.
           </p>
         </div>
       </aside>
@@ -59,8 +59,8 @@ export function MainLayout() {
         </SheetContent>
       </Sheet>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6">
+      <div className="lg:pl-64 print:pl-0">
+        <header className="sticky top-0 z-20 flex print:hidden h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-xl sm:px-6">
           <Button
             variant="ghost"
             size="icon"
