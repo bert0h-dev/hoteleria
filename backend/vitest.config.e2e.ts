@@ -6,5 +6,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // Varias llamadas por prueba contra una base remota.
+    testTimeout: 20_000,
   },
 });

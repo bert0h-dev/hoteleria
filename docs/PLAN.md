@@ -31,6 +31,8 @@ en las tablas principales).
   - [x] Frontend: calendario de ocupación (mapa de calor por tipo y día), llegadas y salidas de hoy, nueva reserva con cotización en vivo, lista, detalle y estancias en la ficha del huésped.
   - [x] Temporadas y fines de semana: ajuste por temporada o por día de la semana (nunca ambos), noche por noche; configuración en pestañas.
 - [ ] **Fase 6 — Check-in / Check-out.**
+  - [x] Backend: check-in con asignación de habitación, llegada sin reserva, mejora de categoría con motivo, cambio de habitación, extender estancia, check-out a Limpieza, cargos sugeridos por entrada anticipada y salida tardía, habitación Ocupada protegida y pantalla de recepción.
+  - [ ] Frontend: pantalla de recepción, check-in por tarjetas, tablero con huésped en casa y tarjeta de registro imprimible.
 - [ ] **Fase 7 — Cobros:** cargos, pagos y folio del huésped.
 - [ ] **Fase 8 — Dashboard y reportes:** ocupación, llegadas y salidas del día.
 - [ ] **Fase 9 — Limpieza y mantenimiento.**

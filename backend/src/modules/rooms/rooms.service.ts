@@ -37,6 +37,20 @@ const personSelect = { select: { id: true, name: true } } as const;
 const roomInclude = {
   roomType: { select: { id: true, name: true, nightlyRate: true } },
   lastCleanedBy: personSelect,
+  // Estancia en curso (huésped en casa).
+  reservations: {
+    where: { status: 'CHECKED_IN' },
+    take: 1,
+    select: {
+      id: true,
+      code: true,
+      checkIn: true,
+      checkOut: true,
+      guest: {
+        select: { id: true, firstName: true, lastName: true, isVip: true },
+      },
+    },
+  },
 } satisfies Prisma.RoomInclude;
 
 type RoomRow = Prisma.RoomGetPayload<{ include: typeof roomInclude }>;
@@ -142,6 +156,19 @@ export class RoomsService {
     if (from === to) {
       throw new BadRequestException(
         `La habitación ya está en estado «${ROOM_STATUS_LABELS[to]}»`,
+      );
+    }
+    if (to === 'OCCUPIED') {
+      throw new BadRequestException(
+        'Una habitación se ocupa con el check-in de una reserva',
+      );
+    }
+    // Una ocupada con huésped en casa solo se libera con check-out o cambio
+    // de habitación. Sin estancia activa (dato viejo o error) sí se permite.
+    const activeStay = room.reservations[0];
+    if (from === 'OCCUPIED' && activeStay) {
+      throw new BadRequestException(
+        `La habitación tiene un huésped en casa (${activeStay.code}); usa el check-out o el cambio de habitación`,
       );
     }
     if (!canChangeStatus(actor.role, from, to)) {
@@ -341,9 +368,11 @@ export class RoomsService {
 
 /** Respuesta de la API: fecha como YYYY-MM-DD y si el bloqueo ya venció. */
 function present(room: RoomRow, timeZone: string) {
+  const { reservations, ...rest } = room;
   return {
-    ...room,
-    blockedUntil: room.blockedUntil && fromDbDate(room.blockedUntil),
+    ...rest,
+    currentStay: reservations[0] ?? null,
+    blockedUntil: rest.blockedUntil && fromDbDate(rest.blockedUntil),
     blockOverdue:
       isBlockingStatus(room.status) &&
       isBlockOverdue(room.blockedUntil, timeZone),
