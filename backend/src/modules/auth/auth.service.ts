@@ -90,13 +90,14 @@ export class AuthService {
     });
   }
 
-  async me(userId: string): Promise<PublicUser> {
+  async me(userId: string): Promise<PublicUser & { hasAuthPin: boolean }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: userSelect,
+      select: { ...userSelect, authPinHash: true },
     });
     if (!user?.isActive) throw new UnauthorizedException(INVALID_SESSION);
-    return user;
+    const { authPinHash, ...rest } = user;
+    return { ...rest, hasAuthPin: !!authPinHash };
   }
 
   /** El usuario actualiza sus propios datos (nombre y teléfono). */

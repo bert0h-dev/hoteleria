@@ -133,4 +133,21 @@ export class UpdateSettingsDto {
   @Min(-90, { message: 'El descuento por día no puede pasar de 90 %' })
   @Max(300, { message: 'El aumento por día no puede pasar de 300 %' })
   weekdayAdjustPercent?: number;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Tope de descuento sin autorización (% de la cuenta)',
+  })
+  @IsOptional()
+  @IsInt({ message: 'El tope de descuento debe ser un porcentaje entero' })
+  @Min(0, { message: 'El tope de descuento no puede ser negativo' })
+  @Max(100, { message: 'El tope de descuento no puede pasar de 100 %' })
+  discountCapPercent?: number;
+
+  @ApiPropertyOptional({ example: 'A', description: 'Serie de los recibos' })
+  @IsOptional()
+  @Matches(/^[A-Z]{1,5}$/, {
+    message: 'La serie debe tener de 1 a 5 letras mayúsculas (ej. A)',
+  })
+  receiptSeries?: string;
 }

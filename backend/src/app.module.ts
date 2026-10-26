@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env.validation.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { BillingModule } from './modules/billing/billing.module.js';
 import { CatalogsModule } from './modules/catalogs/catalogs.module.js';
 import { GuestsModule } from './modules/guests/guests.module.js';
 import { HealthModule } from './modules/health/health.module.js';
@@ -33,6 +34,7 @@ import { UsersModule } from './modules/users/users.module.js';
     GuestsModule,
     ReservationsModule,
     RatePeriodsModule,
+    BillingModule,
     CatalogsModule,
     HealthModule,
   ],

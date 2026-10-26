@@ -5,6 +5,7 @@ import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import type { Env } from '../../config/env.validation.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { AuthorizationService } from './authorization.service.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 
@@ -24,11 +25,12 @@ import { RolesGuard } from './guards/roles.guard.js';
   ],
   controllers: [AuthController],
   providers: [
+    AuthorizationService,
     AuthService,
     // Orden: primero autenticación, después roles.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [AuthService],
+  exports: [AuthService, AuthorizationService],
 })
 export class AuthModule {}

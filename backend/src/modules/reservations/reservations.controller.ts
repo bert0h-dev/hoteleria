@@ -27,6 +27,7 @@ import {
   GuestCountDto,
   WalkInDto,
 } from './dto/stay-operations.dto.js';
+import { CheckOutDto } from '../billing/dto/billing.dto.js';
 import { ReservationsService } from './reservations.service.js';
 import { StaysService } from './stays.service.js';
 
@@ -150,8 +151,12 @@ export class ReservationsController {
   }
 
   @Post(':id/check-out')
-  checkOut(@CurrentUser() actor: AuthUser, @Param('id', ParseUuid) id: string) {
-    return this.stays.checkOut(actor, id);
+  checkOut(
+    @CurrentUser() actor: AuthUser,
+    @Param('id', ParseUuid) id: string,
+    @Body() dto: CheckOutDto,
+  ) {
+    return this.stays.checkOut(actor, id, dto);
   }
 
   @Post(':id/no-show')

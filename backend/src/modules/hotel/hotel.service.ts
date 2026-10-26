@@ -63,6 +63,8 @@ export class HotelService {
         childMaxAge: dto.childMaxAge,
         weekdayAdjustDays: dto.weekdayAdjustDays,
         weekdayAdjustPercent: dto.weekdayAdjustPercent,
+        discountCapPercent: dto.discountCapPercent,
+        receiptSeries: dto.receiptSeries,
       },
       update: dto,
     });

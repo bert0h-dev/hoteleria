@@ -107,6 +107,8 @@ export class UsersService {
           name: dto.name,
           role: dto.role,
           isActive: dto.isActive,
+          canAuthorize: dto.canAuthorize,
+          canDiscountUnlimited: dto.canDiscountUnlimited,
           phone: dto.phone,
           employeeNumber: dto.employeeNumber,
           hireDate: dto.hireDate ? toDbDate(dto.hireDate) : dto.hireDate,

@@ -24,6 +24,10 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AuthService, type ClientMeta, type Session } from './auth.service.js';
+import { AuthorizationService } from './authorization.service.js';
+import { SetPinDto } from './dto/authorization.dto.js';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { Role } from '../../generated/prisma/enums.js';
 import { LoginDto } from './dto/login.dto.js';
 import { ChangeOwnPasswordDto, UpdateProfileDto } from './dto/profile.dto.js';
 
@@ -34,6 +38,7 @@ export const REFRESH_COOKIE = 'refresh_token';
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly authorization: AuthorizationService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -91,6 +96,23 @@ export class AuthController {
   @ApiBearerAuth()
   updateProfile(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
     return this.auth.updateProfile(user.id, dto);
+  }
+
+  /** Mi perfil: definir o cambiar el PIN de autorización. */
+  @Patch('me/pin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  setPin(@CurrentUser() user: AuthUser, @Body() dto: SetPinDto) {
+    return this.authorization.setOwnPin(user, dto.currentPassword, dto.pin);
+  }
+
+  /** Usuarios que pueden autorizar (diálogo de autorización). */
+  @Get('authorizers')
+  @ApiBearerAuth()
+  @Roles(Role.ADMIN, Role.RECEPTION)
+  authorizers(@CurrentUser() user: AuthUser) {
+    return this.authorization.authorizers(user.hotelId);
   }
 
   /** Mi perfil: cambiar la contraseña propia (cierra las demás sesiones). */

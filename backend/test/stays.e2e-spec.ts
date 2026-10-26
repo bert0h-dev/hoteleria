@@ -50,6 +50,8 @@ describe('Check-in, estancia y check-out (e2e)', () => {
       data: {
         hotelId,
         role: 'RECEPTION',
+        // Puede autorizar su propia salida con saldo pendiente.
+        canAuthorize: true,
         name: 'Recepción',
         email: `e2e-st-${run}@test.com`,
         passwordHash: await hash('secreto123'),
@@ -245,7 +247,9 @@ describe('Check-in, estancia y check-out (e2e)', () => {
       where: { id: stayId },
       data: { checkOut: new Date(Date.now() - (3 * 60 - 5) * 60_000) },
     });
-    const res = await post(`/api/reservations/${stayId}/check-out`).expect(201);
+    const res = await post(`/api/reservations/${stayId}/check-out`, {
+      balanceReason: 'Paga al día siguiente',
+    }).expect(201);
     expect(res.body.status).toBe('CHECKED_OUT');
     expect(res.body.charges).toEqual([
       expect.objectContaining({
@@ -307,7 +311,9 @@ describe('Check-in, estancia y check-out (e2e)', () => {
     }).expect(400);
     expect(same.body.message).toBe('La cantidad de personas no cambió');
 
-    await post(`/api/reservations/${id}/check-out`).expect(201);
+    await post(`/api/reservations/${id}/check-out`, {
+      balanceReason: 'Prueba',
+    }).expect(201);
   });
 
   it('llegada sin reserva: crea la reserva y hace el check-in', async () => {
