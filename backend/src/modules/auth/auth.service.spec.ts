@@ -119,11 +119,12 @@ describe('AuthService', () => {
       expect(session.accessToken).toBe('access-token');
     });
 
-    it('si se reusa un token revocado, cierra todas las sesiones', async () => {
+    it('si se reusa un token ya rotado, cierra todas las sesiones', async () => {
       const { service, prisma } = setup();
       prisma.refreshToken.findUnique.mockResolvedValue({
         ...validToken,
         revokedAt: new Date(),
+        rotated: true,
       });
 
       await expect(service.refresh('token', {})).rejects.toBeInstanceOf(
@@ -133,6 +134,21 @@ describe('AuthService', () => {
         expect.objectContaining({ where: { userId: 'u1', revokedAt: null } }),
       );
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('un token revocado por logout o cambio de contraseña solo se rechaza', async () => {
+      const { service, prisma } = setup();
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...validToken,
+        revokedAt: new Date(),
+        rotated: false,
+      });
+
+      await expect(service.refresh('token', {})).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      // No cierra las demás sesiones.
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
     });
 
     it('rechaza tokens expirados o inexistentes', async () => {

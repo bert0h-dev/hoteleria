@@ -45,7 +45,10 @@ PR separados.
       `timezone`). Clave para calcular entradas y salidas.
 
 ### 6. Mi perfil
-- [ ] Que cada usuario pueda **cambiar su propia contraseña** y ver sus datos.
+- [x] Que cada usuario pueda **cambiar su propia contraseña** y ver sus datos.
+- [x] Datos del empleado: **teléfono**, **número de empleado** y **fecha de
+      ingreso** (opcionales). La dirección no se guarda (dato personal sensible
+      que el sistema no necesita para operar).
 
 ---
 
@@ -71,6 +74,8 @@ PR separados.
 ### Usuarios
 - [ ] **Rol Gerente / Supervisor:** ve reportes y autoriza descuentos, sin
       administrar usuarios ni configuración.
+- [ ] **Turnos del personal:** quién trabaja cada día; base para el corte de
+      caja por turno y para asignar limpiezas. → Fase 7
 - [ ] **Bitácora de auditoría:** quién cambió tarifas, precios o usuarios y
       cuándo. → Fase 7
 

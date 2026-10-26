@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
@@ -24,6 +25,7 @@ import { Public } from '../../common/decorators/public.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AuthService, type ClientMeta, type Session } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
+import { ChangeOwnPasswordDto, UpdateProfileDto } from './dto/profile.dto.js';
 
 export const REFRESH_COOKIE = 'refresh_token';
 
@@ -82,6 +84,26 @@ export class AuthController {
   @ApiOkResponse({ description: 'Usuario autenticado' })
   me(@CurrentUser() user: AuthUser) {
     return this.auth.me(user.id);
+  }
+
+  /** Mi perfil: el usuario cambia su nombre y teléfono. */
+  @Patch('me')
+  @ApiBearerAuth()
+  updateProfile(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
+    return this.auth.updateProfile(user.id, dto);
+  }
+
+  /** Mi perfil: cambiar la contraseña propia (cierra las demás sesiones). */
+  @Patch('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  changeOwnPassword(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ChangeOwnPasswordDto,
+    @Req() req: Request,
+  ) {
+    return this.auth.changeOwnPassword(user.id, dto, readRefreshCookie(req));
   }
 
   private respond(res: Response, session: Session) {

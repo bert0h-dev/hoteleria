@@ -19,6 +19,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hasRole: (...roles: Role[]) => boolean;
+  /** Reemplaza los datos del usuario actual (p. ej. tras editar su perfil). */
+  setCurrentUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       hasRole: (...roles) => !!user && roles.includes(user.role),
+      setCurrentUser: setUser,
     }),
     [status, user, login, logout],
   );

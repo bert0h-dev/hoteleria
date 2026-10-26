@@ -1,4 +1,5 @@
-import { ChevronsUpDown, LogOut } from 'lucide-react';
+import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/user-avatar';
 import {
@@ -15,6 +16,7 @@ import { ROLES } from '@/features/auth/roles';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   if (!user) return null;
 
   const handleLogout = async () => {
@@ -45,6 +47,11 @@ export function UserMenu() {
             </p>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/perfil')}>
+          <UserRound />
+          Mi perfil
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={handleLogout}>
           <LogOut />

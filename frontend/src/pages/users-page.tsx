@@ -189,6 +189,7 @@ export function UsersPage() {
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="pl-4">Usuario</TableHead>
                 <TableHead>Rol</TableHead>
+                <TableHead className="hidden lg:table-cell">Contacto</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="hidden md:table-cell">
                   Último acceso
@@ -213,6 +214,9 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-5 w-24 rounded-full" />
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <Skeleton className="h-4 w-24" />
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-16" />
@@ -251,6 +255,23 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <RoleBadge role={user.role} />
+                    </TableCell>
+                    <TableCell className="hidden text-sm lg:table-cell">
+                      {user.phone ? (
+                        <a
+                          href={'tel:' + user.phone.replace(/[^0-9+]/g, '')}
+                          className="hover:text-primary hover:underline"
+                        >
+                          {user.phone}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                      {user.employeeNumber && (
+                        <p className="text-xs text-muted-foreground">
+                          No. {user.employeeNumber}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-1.5 text-sm">

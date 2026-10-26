@@ -37,6 +37,9 @@ const EMPTY: CreateUserValues = {
   email: '',
   role: 'RECEPTION',
   password: '',
+  phone: '',
+  employeeNumber: '',
+  hireDate: '',
 };
 
 /** Crea un usuario (sin `user`) o edita uno existente. */
@@ -73,23 +76,44 @@ export function UserFormDialog({
     if (open) {
       reset(
         user
-          ? { ...EMPTY, name: user.name, email: user.email, role: user.role }
+          ? {
+              ...EMPTY,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              phone: user.phone ?? '',
+              employeeNumber: user.employeeNumber ?? '',
+              hireDate: user.hireDate?.slice(0, 10) ?? '',
+            }
           : EMPTY,
       );
     }
   }, [open, user, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
+    // Los campos opcionales vacíos se guardan como null.
+    const employee = {
+      phone: values.phone || null,
+      employeeNumber: values.employeeNumber || null,
+      hireDate: values.hireDate || null,
+    };
     try {
       if (user) {
         await updateUser.mutateAsync({
           id: user.id,
           name: values.name,
           role: values.role,
+          ...employee,
         });
         toast.success('Usuario actualizado');
       } else {
-        await createUser.mutateAsync(values);
+        await createUser.mutateAsync({
+          name: values.name,
+          email: values.email,
+          role: values.role,
+          password: values.password,
+          ...employee,
+        });
         toast.success('Usuario creado', {
           description: `${values.name} ya puede iniciar sesión.`,
         });
@@ -102,7 +126,7 @@ export function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Editar usuario' : 'Nuevo usuario'}
@@ -167,6 +191,41 @@ export function UserFormDialog({
               )}
               <FieldError errors={[errors.role]} />
             </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field data-invalid={!!errors.phone} className="col-span-2">
+                <FieldLabel htmlFor="user-phone">
+                  Teléfono{' '}
+                  <span className="font-normal text-muted-foreground">
+                    (opcional)
+                  </span>
+                </FieldLabel>
+                <Input
+                  id="user-phone"
+                  type="tel"
+                  placeholder="998 123 4567"
+                  aria-invalid={!!errors.phone}
+                  {...register('phone')}
+                />
+                <FieldError errors={[errors.phone]} />
+              </Field>
+              <Field data-invalid={!!errors.employeeNumber}>
+                <FieldLabel htmlFor="user-employee">No. de empleado</FieldLabel>
+                <Input
+                  id="user-employee"
+                  placeholder="EMP-014"
+                  className="uppercase"
+                  aria-invalid={!!errors.employeeNumber}
+                  {...register('employeeNumber')}
+                />
+                <FieldError errors={[errors.employeeNumber]} />
+              </Field>
+              <Field data-invalid={!!errors.hireDate}>
+                <FieldLabel htmlFor="user-hire">Fecha de ingreso</FieldLabel>
+                <Input id="user-hire" type="date" {...register('hireDate')} />
+                <FieldError errors={[errors.hireDate]} />
+              </Field>
+            </div>
 
             {!isEdit && (
               <Field data-invalid={!!errors.password}>
