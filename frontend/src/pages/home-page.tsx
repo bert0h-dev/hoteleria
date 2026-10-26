@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Activity,
   BedDouble,
-  CalendarDays,
   CreditCard,
   Database,
   Server,
@@ -28,12 +27,6 @@ function greeting(hour: number) {
 }
 
 const UPCOMING = [
-  {
-    icon: CalendarDays,
-    title: 'Reservas',
-    text: 'Disponibilidad y calendario',
-    phase: 5,
-  },
   {
     icon: BedDouble,
     title: 'Check-in / Check-out',
