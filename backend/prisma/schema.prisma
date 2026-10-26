@@ -33,23 +33,24 @@ model Hotel {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users          User[]
-  settings       HotelSettings?
-  roomTypes      RoomType[]
-  rooms          Room[]
-  statusLogs     RoomStatusLog[]
-  guests         Guest[]
-  taxProfiles    GuestTaxProfile[]
-  reservations   Reservation[]
-  ratePeriods    RatePeriod[]
-  stayCharges    StayCharge[]
-  exchangeRates  ExchangeRate[]
-  chargeConcepts ChargeConcept[]
-  folioCharges   FolioCharge[]
-  payments       Payment[]
-  cashShifts     CashShift[]
-  auditLogs      AuditLog[]
-  cleaningTasks  CleaningTask[]
+  users              User[]
+  settings           HotelSettings?
+  roomTypes          RoomType[]
+  rooms              Room[]
+  statusLogs         RoomStatusLog[]
+  guests             Guest[]
+  taxProfiles        GuestTaxProfile[]
+  reservations       Reservation[]
+  ratePeriods        RatePeriod[]
+  stayCharges        StayCharge[]
+  exchangeRates      ExchangeRate[]
+  chargeConcepts     ChargeConcept[]
+  folioCharges       FolioCharge[]
+  payments           Payment[]
+  cashShifts         CashShift[]
+  auditLogs          AuditLog[]
+  cleaningTasks      CleaningTask[]
+  maintenanceTickets MaintenanceTicket[]
 
   @@map("hotels")
 }
@@ -76,32 +77,34 @@ model User {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  hotel                  Hotel           @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  hotel                  Hotel               @relation(fields: [hotelId], references: [id], onDelete: Restrict)
   refreshTokens          RefreshToken[]
-  statusChanges          RoomStatusLog[] @relation("StatusChangedBy")
-  reservationsCreated    Reservation[]   @relation("ReservationCreatedBy")
-  reservationsCancelled  Reservation[]   @relation("ReservationCancelledBy")
-  checkIns               Reservation[]   @relation("ReservationCheckedInBy")
-  checkOuts              Reservation[]   @relation("ReservationCheckedOutBy")
+  statusChanges          RoomStatusLog[]     @relation("StatusChangedBy")
+  reservationsCreated    Reservation[]       @relation("ReservationCreatedBy")
+  reservationsCancelled  Reservation[]       @relation("ReservationCancelledBy")
+  checkIns               Reservation[]       @relation("ReservationCheckedInBy")
+  checkOuts              Reservation[]       @relation("ReservationCheckedOutBy")
   stayCharges            StayCharge[]
   exchangeRates          ExchangeRate[]
-  folioChargesCreated    FolioCharge[]   @relation("FolioChargeCreatedBy")
-  folioChargesAuthorized FolioCharge[]   @relation("FolioChargeAuthorizedBy")
-  folioChargesVoided     FolioCharge[]   @relation("FolioChargeVoidedBy")
-  paymentsCreated        Payment[]       @relation("PaymentCreatedBy")
-  paymentsVoided         Payment[]       @relation("PaymentVoidedBy")
-  stayChargesResolved    StayCharge[]    @relation("StayChargeResolvedBy")
-  stayChargesAuthorized  StayCharge[]    @relation("StayChargeAuthorizedBy")
-  balancesAuthorized     Reservation[]   @relation("BalanceAuthorizedBy")
-  cashShifts             CashShift[]     @relation("CashShiftOwner")
-  cashShiftsClosed       CashShift[]     @relation("CashShiftClosedBy")
-  auditLogs              AuditLog[]      @relation("AuditActor")
-  auditAuthorized        AuditLog[]      @relation("AuditAuthorizedBy")
-  cleaningAssigned       CleaningTask[]  @relation("CleaningAssignedTo")
-  cleaningRequested      CleaningTask[]  @relation("CleaningRequestedBy")
-  cleaningFinished       CleaningTask[]  @relation("CleaningFinishedBy")
-  cleanings              RoomStatusLog[] @relation("CleanedBy")
-  roomsCleaned           Room[]          @relation("LastCleanedBy")
+  folioChargesCreated    FolioCharge[]       @relation("FolioChargeCreatedBy")
+  folioChargesAuthorized FolioCharge[]       @relation("FolioChargeAuthorizedBy")
+  folioChargesVoided     FolioCharge[]       @relation("FolioChargeVoidedBy")
+  paymentsCreated        Payment[]           @relation("PaymentCreatedBy")
+  paymentsVoided         Payment[]           @relation("PaymentVoidedBy")
+  stayChargesResolved    StayCharge[]        @relation("StayChargeResolvedBy")
+  stayChargesAuthorized  StayCharge[]        @relation("StayChargeAuthorizedBy")
+  balancesAuthorized     Reservation[]       @relation("BalanceAuthorizedBy")
+  cashShifts             CashShift[]         @relation("CashShiftOwner")
+  cashShiftsClosed       CashShift[]         @relation("CashShiftClosedBy")
+  auditLogs              AuditLog[]          @relation("AuditActor")
+  auditAuthorized        AuditLog[]          @relation("AuditAuthorizedBy")
+  cleaningAssigned       CleaningTask[]      @relation("CleaningAssignedTo")
+  cleaningRequested      CleaningTask[]      @relation("CleaningRequestedBy")
+  cleaningFinished       CleaningTask[]      @relation("CleaningFinishedBy")
+  ticketsReported        MaintenanceTicket[] @relation("TicketReportedBy")
+  ticketsResolved        MaintenanceTicket[] @relation("TicketResolvedBy")
+  cleanings              RoomStatusLog[]     @relation("CleanedBy")
+  roomsCleaned           Room[]              @relation("LastCleanedBy")
 
   @@unique([hotelId, employeeNumber])
   @@index([hotelId])
@@ -240,12 +243,13 @@ model Room {
   createdAt       DateTime   @default(now()) @map("created_at")
   updatedAt       DateTime   @updatedAt @map("updated_at")
 
-  hotel         Hotel           @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  roomType      RoomType        @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
-  lastCleanedBy User?           @relation("LastCleanedBy", fields: [lastCleanedById], references: [id], onDelete: SetNull)
-  statusLogs    RoomStatusLog[]
-  reservations  Reservation[]
-  cleaningTasks CleaningTask[]
+  hotel              Hotel               @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  roomType           RoomType            @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  lastCleanedBy      User?               @relation("LastCleanedBy", fields: [lastCleanedById], references: [id], onDelete: SetNull)
+  statusLogs         RoomStatusLog[]
+  reservations       Reservation[]
+  cleaningTasks      CleaningTask[]
+  maintenanceTickets MaintenanceTicket[]
 
   @@unique([hotelId, number])
   @@index([hotelId, status])
@@ -774,4 +778,55 @@ model CleaningTask {
   @@index([hotelId, status])
   @@index([hotelId, finishedAt])
   @@map("cleaning_tasks")
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  URGENT
+
+  @@map("ticket_priority")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+
+  @@map("ticket_status")
+}
+
+/// Ticket de mantenimiento de una habitación o de un área general.
+model MaintenanceTicket {
+  id           String         @id @default(uuid()) @db.Uuid
+  hotelId      String         @map("hotel_id") @db.Uuid
+  /// Null = área general (ver area).
+  roomId       String?        @map("room_id") @db.Uuid
+  area         String?
+  description  String
+  priority     TicketPriority @default(MEDIUM)
+  status       TicketStatus   @default(OPEN)
+  /// Si bloqueó la habitación (pasó a Mantenimiento).
+  blocksRoom   Boolean        @default(false) @map("blocks_room")
+  reportedById String         @map("reported_by_id") @db.Uuid
+  createdAt    DateTime       @default(now()) @map("created_at")
+  startedAt    DateTime?      @map("started_at")
+  resolvedAt   DateTime?      @map("resolved_at")
+  /// Usuario que cerró el ticket.
+  resolvedById String?        @map("resolved_by_id") @db.Uuid
+  /// Quién lo arregló (puede ser un técnico externo).
+  fixedBy      String?        @map("fixed_by")
+  resolution   String?
+  cancelReason String?        @map("cancel_reason")
+
+  hotel      Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room       Room? @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reportedBy User  @relation("TicketReportedBy", fields: [reportedById], references: [id], onDelete: Restrict)
+  resolvedBy User? @relation("TicketResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([hotelId, status])
+  @@index([hotelId, createdAt])
+  @@index([roomId])
+  @@map("maintenance_tickets")
 }

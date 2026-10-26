@@ -7,5 +7,6 @@ import { RoomsService } from './rooms.service.js';
   imports: [RoomTypesModule],
   controllers: [RoomsController],
   providers: [RoomsService],
+  exports: [RoomsService],
 })
 export class RoomsModule {}

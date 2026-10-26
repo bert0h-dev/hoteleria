@@ -40,6 +40,6 @@ en las tablas principales).
 - [x] **Fase 8 — Dashboard y reportes:** ocupación, llegadas y salidas del día.
   - [x] Tablero de Inicio (PR A).
   - [x] Reportes con exportación a Excel (PR B).
-- [ ] **Fase 9 — Limpieza y mantenimiento.**
+- [x] **Fase 9 — Limpieza y mantenimiento.**
   - [x] Tareas de limpieza: salida automática, repaso a pedido, asignar o tomar (PR A).
-  - [ ] Tickets de mantenimiento (PR B).
+  - [x] Tickets de mantenimiento (PR B).

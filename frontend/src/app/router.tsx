@@ -140,6 +140,13 @@ export const router = createBrowserRouter([
                   })),
               },
               {
+                path: 'mantenimiento',
+                lazy: () =>
+                  import('@/pages/maintenance-page').then((m) => ({
+                    Component: m.MaintenancePage,
+                  })),
+              },
+              {
                 path: 'cuentas-por-cobrar',
                 lazy: () =>
                   import('@/pages/receivables-page').then((m) => ({

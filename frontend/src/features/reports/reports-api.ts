@@ -7,6 +7,7 @@ import {
   Percent,
   Sparkles,
   TrendingUp,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -45,7 +46,8 @@ export type ReportKind =
   | 'discounts'
   | 'reservations'
   | 'rentals'
-  | 'housekeeping';
+  | 'housekeeping'
+  | 'maintenance';
 
 export const REPORTS: {
   kind: ReportKind;
@@ -102,6 +104,13 @@ export const REPORTS: {
     description: 'Habitaciones limpiadas por usuario',
     icon: Sparkles,
     roles: ['ADMIN', 'RECEPTION', 'HOUSEKEEPING'],
+  },
+  {
+    kind: 'maintenance',
+    label: 'Mantenimiento',
+    description: 'Tickets por habitación y tiempo de solución',
+    icon: Wrench,
+    roles: ['ADMIN'],
   },
 ];
 

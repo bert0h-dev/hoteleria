@@ -8,6 +8,7 @@ import {
   ScrollText,
   Sparkles,
   Wallet,
+  Wrench,
   LayoutDashboard,
   Settings,
   Users,
@@ -56,6 +57,12 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/habitaciones', label: 'Habitaciones', icon: BedDouble },
       { to: '/limpieza', label: 'Limpieza', icon: Sparkles },
+      {
+        to: '/mantenimiento',
+        label: 'Mantenimiento',
+        icon: Wrench,
+        roles: ['ADMIN', 'RECEPTION'],
+      },
       { to: '/reportes', label: 'Reportes', icon: FileBarChart },
       {
         to: '/reservas',

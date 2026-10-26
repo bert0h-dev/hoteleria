@@ -99,4 +99,5 @@ export const AUDIT_ENTITIES: Record<string, string> = {
   hotel_settings: 'Configuración',
   room_type: 'Tipos de habitación',
   rate_period: 'Temporadas',
+  maintenance_ticket: 'Mantenimiento',
 };

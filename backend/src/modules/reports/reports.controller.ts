@@ -27,6 +27,7 @@ const ACCESS: Record<ReportKind, Role[]> = {
   reservations: ['ADMIN'],
   rentals: ['ADMIN', 'RECEPTION'],
   housekeeping: ['ADMIN', 'RECEPTION', 'HOUSEKEEPING'],
+  maintenance: ['ADMIN'],
 };
 
 @ApiTags('Reports')
