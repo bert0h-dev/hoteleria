@@ -2,6 +2,7 @@ import {
   BedDouble,
   CalendarDays,
   ConciergeBell,
+  FileBarChart,
   HandCoins,
   History,
   ScrollText,
@@ -53,6 +54,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Operación',
     items: [
       { to: '/habitaciones', label: 'Habitaciones', icon: BedDouble },
+      { to: '/reportes', label: 'Reportes', icon: FileBarChart },
       {
         to: '/reservas',
         label: 'Reservas',

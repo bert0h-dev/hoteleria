@@ -37,7 +37,7 @@ en las tablas principales).
   - [x] Backend (PR A): folio en centavos, catálogo de conceptos, cargos, descuentos con tope y autorización con PIN, confirmar/condonar cargos sugeridos, pagos en MXN y USD con tipo de cambio del día, devoluciones, cancelaciones (ADMIN), recibos con serie y check-out con saldo autorizado.
   - [x] Frontend (PR B): pestaña Cuenta con folio, cobrar en MXN/USD, cargos, descuentos con tope, autorización con PIN, condonar, devolver, cancelar (ADMIN), recibos imprimibles, tipo de cambio del día, permisos y PIN, pestaña Cobros en Configuración y check-out con saldo.
   - [x] Turnos, corte de caja y bitácora (PR C).
-- [ ] **Fase 8 — Dashboard y reportes:** ocupación, llegadas y salidas del día.
+- [x] **Fase 8 — Dashboard y reportes:** ocupación, llegadas y salidas del día.
   - [x] Tablero de Inicio (PR A).
-  - [ ] Reportes con exportación a Excel (PR B).
+  - [x] Reportes con exportación a Excel (PR B).
 - [ ] **Fase 9 — Limpieza y mantenimiento.**
