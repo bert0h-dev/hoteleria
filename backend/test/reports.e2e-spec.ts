@@ -277,7 +277,7 @@ describe('Reportes (e2e)', () => {
       .expect(200);
     expect(res.headers['content-type']).toContain('spreadsheetml');
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(res.body as Buffer);
+    await wb.xlsx.load(res.body as never);
     expect(wb.worksheets.map((w) => w.name)).toEqual([
       'Resumen',
       'Por día',
