@@ -29,7 +29,12 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/habitaciones', label: 'Habitaciones', icon: BedDouble },
       { to: '/reservas', label: 'Reservas', icon: CalendarDays, soon: true },
-      { to: '/huespedes', label: 'Huéspedes', icon: UsersRound, soon: true },
+      {
+        to: '/huespedes',
+        label: 'Huéspedes',
+        icon: UsersRound,
+        roles: ['ADMIN', 'RECEPTION'],
+      },
     ],
   },
   {

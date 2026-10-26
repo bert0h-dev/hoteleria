@@ -6,7 +6,6 @@ import {
   CreditCard,
   Database,
   Server,
-  UsersRound,
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -29,12 +28,6 @@ function greeting(hour: number) {
 }
 
 const UPCOMING = [
-  {
-    icon: UsersRound,
-    title: 'Huéspedes',
-    text: 'Registro y búsqueda',
-    phase: 4,
-  },
   {
     icon: CalendarDays,
     title: 'Reservas',
