@@ -63,7 +63,7 @@ PR separados.
       horario. → Fase 6
 
 ### Habitaciones
-- [ ] **Tipo de limpieza:** de salida (completa) o de repaso (con huésped). → Fase 9
+- [x] **Tipo de limpieza:** de salida (completa) o de repaso (con huésped). → Fase 9
 - [ ] **Inspección:** estado opcional *Por inspeccionar* entre Limpieza y
       Disponible. → Fase 9
 - [ ] **Camas por tipo** (p. ej. "1 King", "2 matrimoniales").
@@ -82,7 +82,7 @@ PR separados.
 ### Configuración
 - [ ] **Logo del hotel** para folios y pantalla de inicio de sesión.
 - [ ] **Políticas:** depósito, cancelación, horario de silencio. → Fase 5
-- [ ] **Serie y folio consecutivo** de comprobantes. → Fase 7
+- [x] **Serie y folio consecutivo** de comprobantes. → Fase 7
 
 ---
 

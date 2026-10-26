@@ -9,6 +9,7 @@ import type { RoomStatus } from '../../generated/prisma/enums.js';
 import { todayIn } from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { openDepartureTask } from '../cleaning/cleaning-hooks.js';
 import { AuditService } from '../audit/audit.service.js';
 import {
   AuthorizationService,
@@ -734,6 +735,11 @@ async function releaseRoom(
       reason,
       changedById: actor.id,
     },
+  });
+  await openDepartureTask(tx, {
+    hotelId: actor.hotelId,
+    roomId,
+    requestedById: actor.id,
   });
 }
 

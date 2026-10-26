@@ -33,7 +33,7 @@ en las tablas principales).
 - [x] **Fase 6 — Check-in / Check-out.**
   - [x] Backend: check-in con asignación de habitación, llegada sin reserva, mejora de categoría con motivo, cambio de habitación, extender estancia, check-out a Limpieza, cargos sugeridos por entrada anticipada y salida tardía, habitación Ocupada protegida y pantalla de recepción.
   - [x] Frontend: pantalla de recepción, check-in por tarjetas, llegada sin reserva, tablero con huésped en casa y tarjeta de registro imprimible.
-- [ ] **Fase 7 — Cobros:** cargos, pagos y folio del huésped.
+- [x] **Fase 7 — Cobros:** cargos, pagos y folio del huésped.
   - [x] Backend (PR A): folio en centavos, catálogo de conceptos, cargos, descuentos con tope y autorización con PIN, confirmar/condonar cargos sugeridos, pagos en MXN y USD con tipo de cambio del día, devoluciones, cancelaciones (ADMIN), recibos con serie y check-out con saldo autorizado.
   - [x] Frontend (PR B): pestaña Cuenta con folio, cobrar en MXN/USD, cargos, descuentos con tope, autorización con PIN, condonar, devolver, cancelar (ADMIN), recibos imprimibles, tipo de cambio del día, permisos y PIN, pestaña Cobros en Configuración y check-out con saldo.
   - [x] Turnos, corte de caja y bitácora (PR C).
@@ -41,3 +41,5 @@ en las tablas principales).
   - [x] Tablero de Inicio (PR A).
   - [x] Reportes con exportación a Excel (PR B).
 - [ ] **Fase 9 — Limpieza y mantenimiento.**
+  - [x] Tareas de limpieza: salida automática, repaso a pedido, asignar o tomar (PR A).
+  - [ ] Tickets de mantenimiento (PR B).

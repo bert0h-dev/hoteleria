@@ -154,7 +154,11 @@ export function useChangeRoomStatus() {
       cleanedById?: string;
       blockedUntil?: string;
     }) => (await api.patch<Room>(`/rooms/${id}/status`, input)).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.rooms }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.rooms });
+      // El cambio de estado abre o cierra tareas de limpieza.
+      await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
+    },
   });
 }
 

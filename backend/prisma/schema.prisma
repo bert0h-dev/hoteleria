@@ -49,6 +49,7 @@ model Hotel {
   payments       Payment[]
   cashShifts     CashShift[]
   auditLogs      AuditLog[]
+  cleaningTasks  CleaningTask[]
 
   @@map("hotels")
 }
@@ -96,6 +97,9 @@ model User {
   cashShiftsClosed       CashShift[]     @relation("CashShiftClosedBy")
   auditLogs              AuditLog[]      @relation("AuditActor")
   auditAuthorized        AuditLog[]      @relation("AuditAuthorizedBy")
+  cleaningAssigned       CleaningTask[]  @relation("CleaningAssignedTo")
+  cleaningRequested      CleaningTask[]  @relation("CleaningRequestedBy")
+  cleaningFinished       CleaningTask[]  @relation("CleaningFinishedBy")
   cleanings              RoomStatusLog[] @relation("CleanedBy")
   roomsCleaned           Room[]          @relation("LastCleanedBy")
 
@@ -241,6 +245,7 @@ model Room {
   lastCleanedBy User?           @relation("LastCleanedBy", fields: [lastCleanedById], references: [id], onDelete: SetNull)
   statusLogs    RoomStatusLog[]
   reservations  Reservation[]
+  cleaningTasks CleaningTask[]
 
   @@unique([hotelId, number])
   @@index([hotelId, status])
@@ -264,12 +269,15 @@ model RoomStatusLog {
   /// el registro es un ajuste de fecha (previousBlockedUntil → blockedUntil).
   blockedUntil         DateTime?  @map("blocked_until") @db.Date
   previousBlockedUntil DateTime?  @map("previous_blocked_until") @db.Date
+  /// Tarea de limpieza que se cerró con este cambio.
+  cleaningTaskId       String?    @map("cleaning_task_id") @db.Uuid
   createdAt            DateTime   @default(now()) @map("created_at")
 
-  hotel     Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  room      Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  changedBy User  @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
-  cleanedBy User? @relation("CleanedBy", fields: [cleanedById], references: [id], onDelete: SetNull)
+  hotel        Hotel         @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  room         Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  changedBy    User          @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+  cleanedBy    User?         @relation("CleanedBy", fields: [cleanedById], references: [id], onDelete: SetNull)
+  cleaningTask CleaningTask? @relation(fields: [cleaningTaskId], references: [id], onDelete: SetNull)
 
   @@index([roomId, createdAt])
   @@index([hotelId, cleanedAt])
@@ -718,4 +726,52 @@ model AuditLog {
   @@index([hotelId, createdAt])
   @@index([entity, entityId])
   @@map("audit_logs")
+}
+
+enum CleaningKind {
+  /// Salida: limpieza completa al desocuparse.
+  DEPARTURE
+  /// Repaso con el huésped en casa.
+  STAYOVER
+
+  @@map("cleaning_kind")
+}
+
+enum CleaningTaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  CANCELLED
+
+  @@map("cleaning_task_status")
+}
+
+/// Tarea de limpieza de una habitación.
+model CleaningTask {
+  id            String             @id @default(uuid()) @db.Uuid
+  hotelId       String             @map("hotel_id") @db.Uuid
+  roomId        String             @map("room_id") @db.Uuid
+  kind          CleaningKind
+  status        CleaningTaskStatus @default(PENDING)
+  isPriority    Boolean            @default(false) @map("is_priority")
+  notes         String?
+  assignedToId  String?            @map("assigned_to_id") @db.Uuid
+  requestedById String             @map("requested_by_id") @db.Uuid
+  createdAt     DateTime           @default(now()) @map("created_at")
+  startedAt     DateTime?          @map("started_at")
+  finishedAt    DateTime?          @map("finished_at")
+  finishedById  String?            @map("finished_by_id") @db.Uuid
+  cancelledAt   DateTime?          @map("cancelled_at")
+  cancelReason  String?            @map("cancel_reason")
+
+  hotel       Hotel           @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room        Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  assignedTo  User?           @relation("CleaningAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  requestedBy User            @relation("CleaningRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  finishedBy  User?           @relation("CleaningFinishedBy", fields: [finishedById], references: [id], onDelete: SetNull)
+  statusLogs  RoomStatusLog[]
+
+  @@index([hotelId, status])
+  @@index([hotelId, finishedAt])
+  @@map("cleaning_tasks")
 }

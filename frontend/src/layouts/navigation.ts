@@ -6,6 +6,7 @@ import {
   HandCoins,
   History,
   ScrollText,
+  Sparkles,
   Wallet,
   LayoutDashboard,
   Settings,
@@ -54,6 +55,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Operación',
     items: [
       { to: '/habitaciones', label: 'Habitaciones', icon: BedDouble },
+      { to: '/limpieza', label: 'Limpieza', icon: Sparkles },
       { to: '/reportes', label: 'Reportes', icon: FileBarChart },
       {
         to: '/reservas',

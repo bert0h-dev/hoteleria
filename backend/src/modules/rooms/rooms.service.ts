@@ -15,6 +15,11 @@ import {
 } from '../../common/time/hotel-date.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  cancelActiveTasks,
+  completeDepartureTask,
+  openDepartureTask,
+} from '../cleaning/cleaning-hooks.js';
 import { RoomTypesService } from '../room-types/room-types.service.js';
 import type {
   ChangeRoomStatusDto,
@@ -226,6 +231,26 @@ export class RoomsService {
           'Otra persona cambió el estado de la habitación. Actualiza e inténtalo de nuevo.',
         );
       }
+      // Las tareas de limpieza siguen al estado de la habitación.
+      let cleaningTaskId: string | null = null;
+      if (cleanedById) {
+        cleaningTaskId = await completeDepartureTask(tx, {
+          roomId: id,
+          cleanedById,
+          at: now,
+        });
+      } else if (to === 'CLEANING') {
+        await openDepartureTask(tx, {
+          hotelId: actor.hotelId,
+          roomId: id,
+          requestedById: actor.id,
+        });
+      } else if (from === 'CLEANING') {
+        await cancelActiveTasks(tx, {
+          roomId: id,
+          reason: `La habitación pasó a «${ROOM_STATUS_LABELS[to]}»`,
+        });
+      }
       await tx.roomStatusLog.create({
         data: {
           hotelId: actor.hotelId,
@@ -236,6 +261,7 @@ export class RoomsService {
           changedById: actor.id,
           cleanedById,
           cleanedAt: cleanedById ? now : null,
+          cleaningTaskId,
           blockedUntil,
         },
       });
