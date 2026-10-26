@@ -7,6 +7,7 @@ import {
   Play,
   Plus,
   Sparkles,
+  Wrench,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,6 +44,7 @@ import {
   type CleaningTask,
 } from '@/features/cleaning/cleaning-api';
 import { useHousekeepers, useRooms } from '@/features/rooms/rooms-api';
+import { ReportProblemDialog } from '@/features/maintenance/report-problem-dialog';
 import { getErrorMessage } from '@/lib/api';
 import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -199,6 +201,7 @@ function TaskCard({
   const { user } = useAuth();
   const action = useTaskAction();
   const [cancelling, setCancelling] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const inProgress = t.status === 'IN_PROGRESS';
   const mineOrFree = !t.assignedTo || t.assignedTo.id === user?.id;
 
@@ -292,6 +295,16 @@ function TaskCard({
             Terminar
           </Button>
         )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(!manager && 'size-11')}
+          aria-label="Reportar problema"
+          title="Reportar problema"
+          onClick={() => setReporting(true)}
+        >
+          <Wrench />
+        </Button>
         {manager && t.kind === 'STAYOVER' && (
           <Button
             variant="ghost"
@@ -303,6 +316,11 @@ function TaskCard({
           </Button>
         )}
       </div>
+      <ReportProblemDialog
+        open={reporting}
+        onOpenChange={setReporting}
+        room={t.room}
+      />
       {cancelling && (
         <CancelDialog task={t} onClose={() => setCancelling(false)} />
       )}

@@ -84,6 +84,8 @@ export class ReportsService {
         return this.rentals(actor, range);
       case 'housekeeping':
         return this.housekeeping(actor, range);
+      case 'maintenance':
+        return this.maintenance(actor, range);
     }
   }
 
@@ -1058,6 +1060,128 @@ export class ReportsService {
             { key: 'minutes', label: 'Tiempo (min)', type: 'int' },
           ],
           rows: detail,
+        },
+      ],
+    };
+  }
+
+  /** Tickets de mantenimiento creados en el rango. */
+  private async maintenance(actor: AuthUser, range: Range): Promise<Report> {
+    const tickets = await this.prisma.maintenanceTicket.findMany({
+      where: {
+        hotelId: actor.hotelId,
+        createdAt: { gte: range.start, lt: range.end },
+      },
+      include: {
+        room: { select: { number: true } },
+        reportedBy: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const STATUS: Record<string, string> = {
+      OPEN: 'Abierto',
+      IN_PROGRESS: 'En proceso',
+      RESOLVED: 'Resuelto',
+      CANCELLED: 'Cancelado',
+    };
+    const PRIORITY: Record<string, string> = {
+      LOW: 'Baja',
+      MEDIUM: 'Media',
+      URGENT: 'Urgente',
+    };
+    const hours = (t: (typeof tickets)[number]) =>
+      t.status === 'RESOLVED' && t.resolvedAt
+        ? Math.round(
+            ((t.resolvedAt.getTime() - t.createdAt.getTime()) / 3_600_000) * 10,
+          ) / 10
+        : null;
+    const resolved = tickets.filter((t) => t.status === 'RESOLVED');
+    const avg = (xs: number[]) =>
+      xs.length
+        ? Math.round((xs.reduce((n, x) => n + x, 0) / xs.length) * 10) / 10
+        : 0;
+    const placeOf = (t: (typeof tickets)[number]) =>
+      t.room ? `Hab. ${t.room.number}` : (t.area ?? '—');
+
+    const byPlace = new Map<
+      string,
+      { count: number; blocked: number; hours: number[] }
+    >();
+    for (const t of tickets) {
+      const key = placeOf(t);
+      const row = byPlace.get(key) ?? { count: 0, blocked: 0, hours: [] };
+      row.count++;
+      if (t.blocksRoom) row.blocked++;
+      const h = hours(t);
+      if (h !== null) row.hours.push(h);
+      byPlace.set(key, row);
+    }
+    const placeRows: ReportRow[] = [...byPlace]
+      .map(([name, v]) => ({
+        name,
+        count: v.count,
+        blocked: v.blocked,
+        avgHours: avg(v.hours),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      kind: 'maintenance',
+      title: 'Mantenimiento',
+      from: range.from,
+      to: range.to,
+      notes:
+        'Tickets creados en el rango. Tiempo de solución = de que se reportó a que se resolvió.',
+      summary: [
+        { label: 'Tickets', value: tickets.length, type: 'int' },
+        { label: 'Resueltos', value: resolved.length, type: 'int' },
+        {
+          label: 'Urgentes',
+          value: tickets.filter((t) => t.priority === 'URGENT').length,
+          type: 'int',
+        },
+        {
+          label: 'Horas promedio de solución',
+          value: avg(resolved.map((t) => hours(t)!)),
+          type: 'int',
+        },
+      ],
+      sections: [
+        {
+          title: 'Por habitación o área',
+          columns: [
+            { key: 'name', label: 'Lugar', type: 'text' },
+            { key: 'count', label: 'Tickets', type: 'int' },
+            { key: 'blocked', label: 'Bloquearon', type: 'int' },
+            { key: 'avgHours', label: 'Horas promedio', type: 'int' },
+          ],
+          rows: placeRows,
+          totals: sumRows(placeRows, ['count', 'blocked']),
+        },
+        {
+          title: 'Detalle',
+          columns: [
+            { key: 'at', label: 'Reportado', type: 'datetime' },
+            { key: 'place', label: 'Lugar', type: 'text' },
+            { key: 'description', label: 'Problema', type: 'text' },
+            { key: 'priority', label: 'Prioridad', type: 'text' },
+            { key: 'status', label: 'Estado', type: 'text' },
+            { key: 'reportedBy', label: 'Reportó', type: 'text' },
+            { key: 'fixedBy', label: 'Arregló', type: 'text' },
+            { key: 'resolution', label: 'Solución', type: 'text' },
+            { key: 'hours', label: 'Horas', type: 'int' },
+          ],
+          rows: tickets.map((t) => ({
+            at: t.createdAt.toISOString(),
+            place: placeOf(t),
+            description: t.description,
+            priority: PRIORITY[t.priority],
+            status: STATUS[t.status],
+            reportedBy: t.reportedBy.name,
+            fixedBy: t.fixedBy,
+            resolution: t.resolution ?? t.cancelReason,
+            hours: hours(t),
+          })),
         },
       ],
     };

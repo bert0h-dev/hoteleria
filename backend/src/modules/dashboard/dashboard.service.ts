@@ -197,7 +197,7 @@ export class DashboardService {
     const tomorrowEnd = zonedToUtc(addDaysTo(today, 2), '00:00', timeZone);
     const longAgo = new Date(Date.now() - LONG_SHIFT_HOURS * 3_600_000);
 
-    const [noDeposit, longShifts, rate] = await Promise.all([
+    const [noDeposit, longShifts, rate, urgent] = await Promise.all([
       this.prisma.reservation.count({
         where: {
           hotelId: actor.hotelId,
@@ -219,7 +219,23 @@ export class DashboardService {
         select: { user: { select: { name: true } } },
       }),
       this.billing.todayRate(actor),
+      this.prisma.maintenanceTicket.count({
+        where: {
+          hotelId: actor.hotelId,
+          priority: 'URGENT',
+          status: { in: ['OPEN', 'IN_PROGRESS'] },
+        },
+      }),
     ]);
+
+    if (urgent) {
+      alerts.push({
+        kind: 'urgent-tickets',
+        severity: 'danger',
+        text: `${urgent} ticket(s) de mantenimiento urgente(s) sin resolver`,
+        link: '/mantenimiento',
+      });
+    }
 
     if (noDeposit) {
       alerts.push({

@@ -35,9 +35,9 @@ export function MainLayout() {
           <SidebarNav />
         </div>
         <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
-          <p className="text-sm font-medium">Fase 8 de 9</p>
+          <p className="text-sm font-medium">Fase 9 de 9</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Pronto: limpieza y mantenimiento.
+            Sistema completo. Siguiente: CFDI.
           </p>
         </div>
       </aside>

@@ -50,6 +50,7 @@ export const REPORT_KINDS = [
   'reservations',
   'rentals',
   'housekeeping',
+  'maintenance',
 ] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
