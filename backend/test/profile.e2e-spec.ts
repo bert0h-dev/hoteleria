@@ -113,6 +113,49 @@ describe('Mi perfil y datos del empleado (e2e)', () => {
     );
   });
 
+  it('limpieza no puede tener permisos de cobro; al pasar a limpieza se le quitan', async () => {
+    const admin = await login(adminEmail).expect(200);
+    const auth = { Authorization: `Bearer ${admin.body.accessToken}` };
+    const created = await http()
+      .post('/api/users')
+      .set(auth)
+      .send({
+        name: 'Futura Limpieza',
+        email: `e2e-perfil-hk-${run}@test.com`,
+        password,
+        role: 'RECEPTION',
+      })
+      .expect(201);
+    const id = created.body.id;
+
+    // Como recepción sí puede tener permisos…
+    await http()
+      .patch(`/api/users/${id}`)
+      .set(auth)
+      .send({ canAuthorize: true, canDiscountUnlimited: true })
+      .expect(200);
+    // …pero al pasar a limpieza se le quitan solos.
+    const toHousekeeping = await http()
+      .patch(`/api/users/${id}`)
+      .set(auth)
+      .send({ role: 'HOUSEKEEPING' })
+      .expect(200);
+    expect(toHousekeeping.body).toMatchObject({
+      role: 'HOUSEKEEPING',
+      canAuthorize: false,
+      canDiscountUnlimited: false,
+    });
+
+    const rejected = await http()
+      .patch(`/api/users/${id}`)
+      .set(auth)
+      .send({ canAuthorize: true })
+      .expect(400);
+    expect(rejected.body.message).toBe(
+      'El personal de limpieza no puede tener permisos de cobro ni autorizar',
+    );
+  });
+
   it('cada usuario edita su nombre y teléfono, pero no su rol ni su correo', async () => {
     const me = await login(staffEmail).expect(200);
     const auth = { Authorization: `Bearer ${me.body.accessToken}` };

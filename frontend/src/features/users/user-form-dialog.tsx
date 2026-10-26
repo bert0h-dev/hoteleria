@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/features/auth/auth-context';
 import type { User } from '@/features/auth/types';
 import { getErrorMessage } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { RoleSelect } from './role-select';
 import {
   createUserSchema,
@@ -75,6 +76,8 @@ export function UserFormDialog({
     ),
     defaultValues: EMPTY,
   });
+  // Con rol de limpieza, los permisos de cobro se deshabilitan.
+  const isHousekeeping = useWatch({ control, name: 'role' }) === 'HOUSEKEEPING';
 
   useEffect(() => {
     if (open) {
@@ -110,8 +113,10 @@ export function UserFormDialog({
           name: values.name,
           role: values.role,
           ...employee,
-          canAuthorize: values.canAuthorize,
-          canDiscountUnlimited: values.canDiscountUnlimited,
+          // Limpieza nunca tiene permisos de cobro.
+          canAuthorize: values.role !== 'HOUSEKEEPING' && values.canAuthorize,
+          canDiscountUnlimited:
+            values.role !== 'HOUSEKEEPING' && values.canDiscountUnlimited,
         });
         toast.success('Usuario actualizado');
       } else {
@@ -236,10 +241,21 @@ export function UserFormDialog({
             </div>
 
             {isEdit && (
-              <div className="space-y-2 rounded-xl border p-3">
+              <div
+                className={cn(
+                  'space-y-2 rounded-xl border p-3',
+                  isHousekeeping && 'bg-muted/40',
+                )}
+              >
                 <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                   Permisos de cobro
                 </p>
+                {isHousekeeping && (
+                  <p className="text-xs text-muted-foreground">
+                    El personal de limpieza no cobra ni autoriza; estos permisos
+                    no aplican a su rol.
+                  </p>
+                )}
                 <Controller
                   control={control}
                   name="canAuthorize"
@@ -256,7 +272,8 @@ export function UserFormDialog({
                       </FieldContent>
                       <Switch
                         id="perm-authorize"
-                        checked={field.value}
+                        checked={!isHousekeeping && field.value}
+                        disabled={isHousekeeping}
                         onCheckedChange={field.onChange}
                       />
                     </Field>
@@ -277,7 +294,8 @@ export function UserFormDialog({
                       </FieldContent>
                       <Switch
                         id="perm-discount"
-                        checked={field.value}
+                        checked={!isHousekeeping && field.value}
+                        disabled={isHousekeeping}
                         onCheckedChange={field.onChange}
                       />
                     </Field>
