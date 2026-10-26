@@ -10,6 +10,12 @@ export interface User {
   /** Fecha de ingreso laboral (ISO; solo importa la parte YYYY-MM-DD). */
   hireDate: string | null;
   role: Role;
+  /** Puede autorizar con su PIN. */
+  canAuthorize: boolean;
+  /** Aplica descuentos sin límite ni autorización. */
+  canDiscountUnlimited: boolean;
+  /** Solo en /auth/me: si ya configuró su PIN. */
+  hasAuthPin?: boolean;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;

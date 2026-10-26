@@ -39,6 +39,8 @@ export interface UpdateUserInput extends EmployeeInput {
   name?: string;
   role?: Role;
   isActive?: boolean;
+  canAuthorize?: boolean;
+  canDiscountUnlimited?: boolean;
 }
 
 const usersKey = ['users'] as const;

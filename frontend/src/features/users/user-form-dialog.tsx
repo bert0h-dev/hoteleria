@@ -14,12 +14,14 @@ import {
 } from '@/components/ui/dialog';
 import {
   Field,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/features/auth/auth-context';
 import type { User } from '@/features/auth/types';
 import { getErrorMessage } from '@/lib/api';
@@ -40,6 +42,8 @@ const EMPTY: CreateUserValues = {
   phone: '',
   employeeNumber: '',
   hireDate: '',
+  canAuthorize: false,
+  canDiscountUnlimited: false,
 };
 
 /** Crea un usuario (sin `user`) o edita uno existente. */
@@ -84,6 +88,8 @@ export function UserFormDialog({
               phone: user.phone ?? '',
               employeeNumber: user.employeeNumber ?? '',
               hireDate: user.hireDate?.slice(0, 10) ?? '',
+              canAuthorize: user.canAuthorize,
+              canDiscountUnlimited: user.canDiscountUnlimited,
             }
           : EMPTY,
       );
@@ -104,6 +110,8 @@ export function UserFormDialog({
           name: values.name,
           role: values.role,
           ...employee,
+          canAuthorize: values.canAuthorize,
+          canDiscountUnlimited: values.canDiscountUnlimited,
         });
         toast.success('Usuario actualizado');
       } else {
@@ -226,6 +234,57 @@ export function UserFormDialog({
                 <FieldError errors={[errors.hireDate]} />
               </Field>
             </div>
+
+            {isEdit && (
+              <div className="space-y-2 rounded-xl border p-3">
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Permisos de cobro
+                </p>
+                <Controller
+                  control={control}
+                  name="canAuthorize"
+                  render={({ field }) => (
+                    <Field orientation="horizontal">
+                      <FieldContent>
+                        <FieldLabel htmlFor="perm-authorize">
+                          Puede autorizar
+                        </FieldLabel>
+                        <FieldDescription>
+                          Autoriza con su PIN descuentos sobre el tope,
+                          condonaciones y salidas con saldo.
+                        </FieldDescription>
+                      </FieldContent>
+                      <Switch
+                        id="perm-authorize"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="canDiscountUnlimited"
+                  render={({ field }) => (
+                    <Field orientation="horizontal">
+                      <FieldContent>
+                        <FieldLabel htmlFor="perm-discount">
+                          Descuentos sin límite
+                        </FieldLabel>
+                        <FieldDescription>
+                          Aplica descuentos sin pedir autorización.
+                        </FieldDescription>
+                      </FieldContent>
+                      <Switch
+                        id="perm-discount"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </Field>
+                  )}
+                />
+              </div>
+            )}
 
             {!isEdit && (
               <Field data-invalid={!!errors.password}>

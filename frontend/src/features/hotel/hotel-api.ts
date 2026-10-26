@@ -7,6 +7,9 @@ export interface HotelSettings extends PricingSettings, TaxSettings {
   childMaxAge: number;
   weekdayAdjustDays: number[];
   weekdayAdjustPercent: number;
+  discountCapPercent: number;
+  receiptSeries: string;
+  nextReceiptNumber: number;
   checkInTime: string;
   checkOutTime: string;
   updatedAt: string;

@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/features/auth/auth-context';
+import { PinCard } from '@/features/auth/pin-card';
 import {
   useChangeOwnPassword,
   useUpdateProfile,
@@ -72,6 +73,7 @@ export function ProfilePage() {
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <PersonalDataForm user={user} />
         <PasswordForm />
+        {user.canAuthorize && <PinCard />}
       </div>
     </div>
   );

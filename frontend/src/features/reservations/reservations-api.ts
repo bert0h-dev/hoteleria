@@ -223,8 +223,17 @@ export function useExtendStay() {
 export function useCheckOut() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: async (id: string) =>
-      (await api.post<Reservation>(`/reservations/${id}/check-out`)).data,
+    mutationFn: async ({
+      id,
+      ...input
+    }: {
+      id: string;
+      /** Obligatorio si queda saldo (cuenta por cobrar). */
+      balanceReason?: string;
+      authorization?: { authorizerId: string; pin: string };
+    }) =>
+      (await api.post<Reservation>(`/reservations/${id}/check-out`, input))
+        .data,
     onSuccess: invalidate,
   });
 }

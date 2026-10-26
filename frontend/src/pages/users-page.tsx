@@ -255,6 +255,14 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <RoleBadge role={user.role} />
+                      {user.canAuthorize && (
+                        <span
+                          title="Puede autorizar con PIN"
+                          className="ml-1.5 inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300"
+                        >
+                          Autoriza
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden text-sm lg:table-cell">
                       {user.phone ? (

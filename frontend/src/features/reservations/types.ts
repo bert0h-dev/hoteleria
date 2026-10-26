@@ -197,7 +197,12 @@ export interface FrontDesk {
   today: string;
   arrivals: Reservation[];
   noShowCandidates: Reservation[];
-  inHouse: (Reservation & { departsToday: boolean; overdue: boolean })[];
+  inHouse: (Reservation & {
+    departsToday: boolean;
+    overdue: boolean;
+    /** Saldo pendiente en centavos (negativo: saldo a favor). */
+    balanceCents: number;
+  })[];
 }
 
 export interface CalendarDay {
