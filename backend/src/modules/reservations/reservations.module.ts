@@ -11,5 +11,6 @@ import { StaysService } from './stays.service.js';
   imports: [HotelModule, RatePeriodsModule, BillingModule, AuthModule],
   controllers: [ReservationsController],
   providers: [ReservationsService, StaysService],
+  exports: [ReservationsService, StaysService],
 })
 export class ReservationsModule {}
