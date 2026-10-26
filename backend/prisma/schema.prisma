@@ -33,13 +33,14 @@ model Hotel {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users       User[]
-  settings    HotelSettings?
-  roomTypes   RoomType[]
-  rooms       Room[]
-  statusLogs  RoomStatusLog[]
-  guests      Guest[]
-  taxProfiles GuestTaxProfile[]
+  users        User[]
+  settings     HotelSettings?
+  roomTypes    RoomType[]
+  rooms        Room[]
+  statusLogs   RoomStatusLog[]
+  guests       Guest[]
+  taxProfiles  GuestTaxProfile[]
+  reservations Reservation[]
 
   @@map("hotels")
 }
@@ -61,11 +62,13 @@ model User {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  hotel         Hotel           @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  refreshTokens RefreshToken[]
-  statusChanges RoomStatusLog[] @relation("StatusChangedBy")
-  cleanings     RoomStatusLog[] @relation("CleanedBy")
-  roomsCleaned  Room[]          @relation("LastCleanedBy")
+  hotel                 Hotel           @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  refreshTokens         RefreshToken[]
+  statusChanges         RoomStatusLog[] @relation("StatusChangedBy")
+  reservationsCreated   Reservation[]   @relation("ReservationCreatedBy")
+  reservationsCancelled Reservation[]   @relation("ReservationCancelledBy")
+  cleanings             RoomStatusLog[] @relation("CleanedBy")
+  roomsCleaned          Room[]          @relation("LastCleanedBy")
 
   @@unique([hotelId, employeeNumber])
   @@index([hotelId])
@@ -122,23 +125,25 @@ enum Amenity {
 /// Configuración de tarifas y horarios del hotel (una por hotel).
 /// Los porcentajes son enteros: 15 = 15 % del precio por noche.
 model HotelSettings {
-  hotelId            String   @id @map("hotel_id") @db.Uuid
-  hourlyRatePercent  Int      @default(15) @map("hourly_rate_percent")
-  minHours           Int      @default(3) @map("min_hours")
-  dayRatePercent     Int      @default(120) @map("day_rate_percent")
-  dayDurationHours   Int      @default(24) @map("day_duration_hours")
-  weekRatePercent    Int      @default(600) @map("week_rate_percent")
+  hotelId               String   @id @map("hotel_id") @db.Uuid
+  hourlyRatePercent     Int      @default(15) @map("hourly_rate_percent")
+  minHours              Int      @default(3) @map("min_hours")
+  dayRatePercent        Int      @default(120) @map("day_rate_percent")
+  dayDurationHours      Int      @default(24) @map("day_duration_hours")
+  weekRatePercent       Int      @default(600) @map("week_rate_percent")
   /// Horario de la modalidad por noche, formato HH:mm.
-  checkInTime        String   @default("15:00") @map("check_in_time") @db.VarChar(5)
-  checkOutTime       String   @default("12:00") @map("check_out_time") @db.VarChar(5)
+  checkInTime           String   @default("15:00") @map("check_in_time") @db.VarChar(5)
+  checkOutTime          String   @default("12:00") @map("check_out_time") @db.VarChar(5)
   /// Si la estancia por horas cuesta más que el día completo, se cobra el día.
-  capHourlyAtDayRate Boolean  @default(true) @map("cap_hourly_at_day_rate")
+  capHourlyAtDayRate    Boolean  @default(true) @map("cap_hourly_at_day_rate")
   /// Impuestos (los precios ya los incluyen; solo se desglosan). En %.
-  vatPercent         Float    @default(16) @map("vat_percent")
-  lodgingTaxPercent  Float    @default(3) @map("lodging_tax_percent")
+  vatPercent            Float    @default(16) @map("vat_percent")
+  lodgingTaxPercent     Float    @default(3) @map("lodging_tax_percent")
   /// Edad máxima para considerarse niño.
-  childMaxAge        Int      @default(12) @map("child_max_age")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  childMaxAge           Int      @default(12) @map("child_max_age")
+  /// Siguiente número de folio de reserva (R-000001…).
+  nextReservationNumber Int      @default(1) @map("next_reservation_number")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
@@ -164,8 +169,9 @@ model RoomType {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  hotel Hotel  @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  rooms Room[]
+  hotel        Hotel         @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  rooms        Room[]
+  reservations Reservation[]
 
   @@unique([hotelId, name])
   @@map("room_types")
@@ -192,6 +198,7 @@ model Room {
   roomType      RoomType        @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
   lastCleanedBy User?           @relation("LastCleanedBy", fields: [lastCleanedById], references: [id], onDelete: SetNull)
   statusLogs    RoomStatusLog[]
+  reservations  Reservation[]
 
   @@unique([hotelId, number])
   @@index([hotelId, status])
@@ -263,8 +270,9 @@ model Guest {
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  hotel       Hotel             @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  taxProfiles GuestTaxProfile[]
+  hotel        Hotel             @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  taxProfiles  GuestTaxProfile[]
+  reservations Reservation[]
 
   @@unique([hotelId, documentType, documentNumber])
   @@index([hotelId, lastName])
@@ -290,10 +298,93 @@ model GuestTaxProfile {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
-  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  hotel        Hotel         @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  guest        Guest         @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
 
   @@unique([guestId, rfc])
   @@index([hotelId, rfc])
   @@map("guest_tax_profiles")
+}
+
+enum StayModality {
+  NIGHTLY
+  DAILY
+  HOURLY
+
+  @@map("stay_modality")
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+
+  @@map("reservation_status")
+}
+
+enum ReservationSource {
+  WALK_IN
+  PHONE
+  WHATSAPP
+  OTHER
+
+  @@map("reservation_source")
+}
+
+/// Reserva por tipo de habitación; la habitación se asigna al llegar.
+/// El precio se congela al reservar (no cambia si después cambian las tarifas).
+model Reservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  hotelId         String            @map("hotel_id") @db.Uuid
+  /// Folio legible, consecutivo por hotel (R-000123).
+  code            String
+  guestId         String            @map("guest_id") @db.Uuid
+  roomTypeId      String            @map("room_type_id") @db.Uuid
+  /// Se asigna en el check-in.
+  roomId          String?           @map("room_id") @db.Uuid
+  modality        StayModality
+  checkIn         DateTime          @map("check_in") @db.Timestamptz(3)
+  checkOut        DateTime          @map("check_out") @db.Timestamptz(3)
+  /// Noches, días u horas reservadas según la modalidad.
+  units           Int
+  adults          Int
+  children        Int               @default(0)
+  source          ReservationSource
+  status          ReservationStatus @default(CONFIRMED)
+  requiresDeposit Boolean           @default(false) @map("requires_deposit")
+  notes           String?
+  taxProfileId    String?           @map("tax_profile_id") @db.Uuid
+
+  // Precio congelado (pesos enteros, impuestos incluidos).
+  nightlyRate  Int  @map("nightly_rate")
+  baseAmount   Int  @map("base_amount")
+  extrasAmount Int  @map("extras_amount")
+  totalAmount  Int  @map("total_amount")
+  /// Detalle del cálculo (semanas, horas cobradas, tope, impuestos…).
+  pricing      Json
+
+  createdById   String    @map("created_by_id") @db.Uuid
+  cancelledAt   DateTime? @map("cancelled_at")
+  cancelledById String?   @map("cancelled_by_id") @db.Uuid
+  cancelReason  String?   @map("cancel_reason")
+  noShowAt      DateTime? @map("no_show_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  hotel       Hotel            @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  guest       Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  roomType    RoomType         @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  room        Room?            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  taxProfile  GuestTaxProfile? @relation(fields: [taxProfileId], references: [id], onDelete: SetNull)
+  createdBy   User             @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  cancelledBy User?            @relation("ReservationCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+
+  @@unique([hotelId, code])
+  @@index([hotelId, roomTypeId, checkIn, checkOut])
+  @@index([hotelId, status])
+  @@index([guestId])
+  @@map("reservations")
 }
