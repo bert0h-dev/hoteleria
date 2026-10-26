@@ -9,6 +9,7 @@ import {
   LogOut,
   Printer,
   Repeat,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/user-avatar';
@@ -34,12 +35,14 @@ import {
 } from '@/lib/format';
 import {
   useAvailableRooms,
+  useChangeGuests,
   useCheckIn,
   useCheckOut,
   useExtendStay,
   useMoveRoom,
 } from '../reservations-api';
 import { MODALITIES, unitLabel, type Reservation } from '../types';
+import { GuestCountStepper } from './guest-count-stepper';
 import { RoomPicker } from './room-picker';
 
 type DialogProps = {
@@ -80,6 +83,13 @@ function CheckInForm({
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [done, setDone] = useState<Reservation | null>(null);
+  // Personas que llegan (pueden ser más o menos que las reservadas).
+  const [guests, setGuests] = useState({
+    adults: r.adults,
+    children: r.children,
+  });
+  const guestsChanged =
+    guests.adults !== r.adults || guests.children !== r.children;
   const name = `${r.guest.firstName} ${r.guest.lastName}`;
 
   const missing = [
@@ -99,8 +109,13 @@ function CheckInForm({
         id: r.id,
         roomId: room.id,
         reason: room.upgrade ? reason.trim() : undefined,
+        ...(guestsChanged && guests),
       });
-      toast.success(`Check-in: ${name} en la habitación ${room.number}`);
+      toast.success(`Check-in: ${name} en la habitación ${room.number}`, {
+        description: guestsChanged
+          ? `Personas ajustadas; nuevo total ${formatMoney(updated.totalAmount)} (antes ${formatMoney(r.totalAmount)}).`
+          : undefined,
+      });
       setDone(updated);
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -171,6 +186,18 @@ function CheckInForm({
               {formatDayTime(r.checkOut)}
             </p>
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>¿Cuántas personas llegan?</Label>
+          <GuestCountStepper value={guests} onChange={setGuests} />
+          {guestsChanged && (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Reservaron para {r.adults} adultos
+              {r.children ? ` y ${r.children} niños` : ''}; el total se
+              recalculará con los cargos por persona extra.
+            </p>
+          )}
         </div>
 
         {guest && missing.length > 0 && (
@@ -309,6 +336,79 @@ function MoveForm({
 // ---------------------------------------------------------------------------
 // Extender estancia
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Personas (durante la estancia o antes de llegar)
+// ---------------------------------------------------------------------------
+
+export function GuestsDialog({ reservation, onOpenChange }: DialogProps) {
+  return (
+    <Dialog open={!!reservation} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {reservation && (
+          <GuestsForm
+            reservation={reservation}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function GuestsForm({
+  reservation: r,
+  onDone,
+}: {
+  reservation: Reservation;
+  onDone: () => void;
+}) {
+  const change = useChangeGuests();
+  const [guests, setGuests] = useState({
+    adults: r.adults,
+    children: r.children,
+  });
+  const changed = guests.adults !== r.adults || guests.children !== r.children;
+
+  const submit = async () => {
+    try {
+      const updated = await change.mutateAsync({ id: r.id, ...guests });
+      toast.success('Personas actualizadas', {
+        description: `Nuevo total ${formatMoney(updated.totalAmount)} (antes ${formatMoney(r.totalAmount)}).`,
+      });
+      onDone();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Personas · {r.code}</DialogTitle>
+        <DialogDescription>
+          {r.guest.firstName} {r.guest.lastName}
+          {r.room && ` · habitación ${r.room.number}`}. Se recalcula toda la
+          estancia con los cargos por persona extra.
+        </DialogDescription>
+      </DialogHeader>
+      <GuestCountStepper value={guests} onChange={setGuests} />
+      <p className="text-xs text-muted-foreground">
+        Total actual: {formatMoney(r.totalAmount)}. La capacidad depende de la
+        habitación asignada.
+      </p>
+      <DialogFooter>
+        <Button variant="outline" onClick={onDone}>
+          Cancelar
+        </Button>
+        <Button onClick={submit} disabled={!changed || change.isPending}>
+          {change.isPending ? <Loader2 className="animate-spin" /> : <Users />}
+          Guardar
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
 
 export function ExtendStayDialog({ reservation, onOpenChange }: DialogProps) {
   return (

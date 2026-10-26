@@ -159,19 +159,15 @@ export function useCheckIn() {
   return useMutation({
     mutationFn: async ({
       id,
-      roomId,
-      reason,
+      ...input
     }: {
       id: string;
       roomId: string;
       reason?: string;
+      adults?: number;
+      children?: number;
     }) =>
-      (
-        await api.post<Reservation>(`/reservations/${id}/check-in`, {
-          roomId,
-          reason,
-        })
-      ).data,
+      (await api.post<Reservation>(`/reservations/${id}/check-in`, input)).data,
     onSuccess: invalidate,
   });
 }
@@ -229,6 +225,29 @@ export function useCheckOut() {
   return useMutation({
     mutationFn: async (id: string) =>
       (await api.post<Reservation>(`/reservations/${id}/check-out`)).data,
+    onSuccess: invalidate,
+  });
+}
+
+/** Cambiar la cantidad de personas (recalcula toda la estancia). */
+export function useChangeGuests() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      adults,
+      children,
+    }: {
+      id: string;
+      adults: number;
+      children: number;
+    }) =>
+      (
+        await api.post<Reservation>(`/reservations/${id}/guests`, {
+          adults,
+          children,
+        })
+      ).data,
     onSuccess: invalidate,
   });
 }

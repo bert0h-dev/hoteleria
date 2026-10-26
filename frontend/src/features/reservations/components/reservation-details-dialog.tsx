@@ -57,6 +57,7 @@ import {
   CheckInDialog,
   CheckOutDialog,
   ExtendStayDialog,
+  GuestsDialog,
   MoveRoomDialog,
 } from './stay-dialogs';
 
@@ -90,7 +91,7 @@ function Details({ reservation: r }: { reservation: Reservation }) {
   const [editing, setEditing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [stayAction, setStayAction] = useState<
-    'check-in' | 'check-out' | 'extend' | 'move' | null
+    'check-in' | 'check-out' | 'extend' | 'move' | 'guests' | null
   >(null);
   const isInHouse = r.status === 'CHECKED_IN';
   const noShow = useNoShow();
@@ -181,6 +182,14 @@ function Details({ reservation: r }: { reservation: Reservation }) {
               </Button>
               {isInHouse && (
                 <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setStayAction('guests')}
+                  >
+                    <Users />
+                    Personas
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -367,6 +376,10 @@ function Details({ reservation: r }: { reservation: Reservation }) {
       />
       <ExtendStayDialog
         reservation={stayAction === 'extend' ? r : null}
+        onOpenChange={(o) => !o && setStayAction(null)}
+      />
+      <GuestsDialog
+        reservation={stayAction === 'guests' ? r : null}
         onOpenChange={(o) => !o && setStayAction(null)}
       />
       <MoveRoomDialog

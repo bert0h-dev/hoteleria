@@ -10,6 +10,7 @@ import {
   Repeat,
   UserPlus,
   UserX,
+  Users,
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -25,6 +26,7 @@ import {
   CheckInDialog,
   CheckOutDialog,
   ExtendStayDialog,
+  GuestsDialog,
   MoveRoomDialog,
 } from '@/features/reservations/components/stay-dialogs';
 import {
@@ -36,7 +38,7 @@ import { getErrorMessage } from '@/lib/api';
 import { formatDayTime, todayInHotel } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-type Action = 'check-in' | 'check-out' | 'extend' | 'move';
+type Action = 'check-in' | 'check-out' | 'extend' | 'move' | 'guests';
 
 export function FrontDeskPage() {
   const { data, isLoading } = useFrontDesk();
@@ -209,6 +211,14 @@ export function FrontDeskPage() {
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label="Personas"
+                    onClick={() => open('guests')(r)}
+                  >
+                    <Users />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     aria-label="Extender estancia"
                     onClick={() => open('extend')(r)}
                   >
@@ -295,6 +305,10 @@ export function FrontDeskPage() {
       />
       <ExtendStayDialog
         reservation={dialogFor('extend')}
+        onOpenChange={(o) => !o && close()}
+      />
+      <GuestsDialog
+        reservation={dialogFor('guests')}
         onOpenChange={(o) => !o && close()}
       />
       <MoveRoomDialog

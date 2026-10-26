@@ -15,6 +15,21 @@ import { CreateReservationDto } from './reservation.dto.js';
 const trimOrUndefined = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() || undefined : value;
 
+/** Cantidad de personas (para ajustarla al llegar o durante la estancia). */
+export class GuestCountDto {
+  @ApiProperty({ example: 3 })
+  @IsInt({ message: 'Los adultos deben ser un número entero' })
+  @Min(1, { message: 'Debe haber al menos 1 adulto' })
+  @Max(20, { message: 'No pueden ser más de 20 adultos' })
+  adults: number;
+
+  @ApiProperty({ example: 1 })
+  @IsInt({ message: 'Los niños deben ser un número entero' })
+  @Min(0, { message: 'Los niños no pueden ser negativos' })
+  @Max(20, { message: 'No pueden ser más de 20 niños' })
+  children: number;
+}
+
 export class AssignRoomDto {
   @ApiProperty()
   @IsUUID('4', { message: 'La habitación no es válida' })
@@ -29,6 +44,20 @@ export class AssignRoomDto {
   @IsString({ message: 'El motivo debe ser texto' })
   @MaxLength(300, { message: 'El motivo no puede pasar de 300 caracteres' })
   reason?: string;
+
+  @ApiPropertyOptional({ description: 'Ajuste de adultos al llegar' })
+  @IsOptional()
+  @IsInt({ message: 'Los adultos deben ser un número entero' })
+  @Min(1, { message: 'Debe haber al menos 1 adulto' })
+  @Max(20, { message: 'No pueden ser más de 20 adultos' })
+  adults?: number;
+
+  @ApiPropertyOptional({ description: 'Ajuste de niños al llegar' })
+  @IsOptional()
+  @IsInt({ message: 'Los niños deben ser un número entero' })
+  @Min(0, { message: 'Los niños no pueden ser negativos' })
+  @Max(20, { message: 'No pueden ser más de 20 niños' })
+  children?: number;
 }
 
 /** Llegada sin reserva: datos de la reserva + habitación. */
