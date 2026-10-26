@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsInt,
   IsNumber,
@@ -109,4 +111,26 @@ export class UpdateSettingsDto {
   @Min(0, { message: 'La edad de niño no puede ser negativa' })
   @Max(17, { message: 'La edad de niño no puede pasar de 17 años' })
   childMaxAge?: number;
+
+  @ApiPropertyOptional({
+    example: [5, 6],
+    description: 'Días con ajuste (0 = domingo … 6 = sábado)',
+  })
+  @IsOptional()
+  @IsArray({ message: 'Los días deben ser una lista' })
+  @ArrayUnique({ message: 'Hay días repetidos' })
+  @IsInt({ each: true, message: 'Los días deben ser números del 0 al 6' })
+  @Min(0, { each: true, message: 'Los días deben ser números del 0 al 6' })
+  @Max(6, { each: true, message: 'Los días deben ser números del 0 al 6' })
+  weekdayAdjustDays?: number[];
+
+  @ApiPropertyOptional({
+    example: 15,
+    description: 'Ajuste en % para esos días',
+  })
+  @IsOptional()
+  @IsInt({ message: 'El ajuste por día debe ser un porcentaje entero' })
+  @Min(-90, { message: 'El descuento por día no puede pasar de 90 %' })
+  @Max(300, { message: 'El aumento por día no puede pasar de 300 %' })
+  weekdayAdjustPercent?: number;
 }

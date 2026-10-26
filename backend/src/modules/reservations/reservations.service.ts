@@ -19,6 +19,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { HotelService } from '../hotel/hotel.service.js';
+import { RatePeriodsService } from '../rate-periods/rate-periods.service.js';
 import { searchTerms } from '../guests/guest-search.js';
 import type {
   CalendarQueryDto,
@@ -32,6 +33,7 @@ import {
   computeStay,
   peakOccupancy,
   StayError,
+  type PriceCalendar,
   type Stay,
   type StaySettings,
 } from './stay.js';
@@ -73,6 +75,7 @@ export class ReservationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hotel: HotelService,
+    private readonly ratePeriods: RatePeriodsService,
   ) {}
 
   // ---------------------------------------------------------------------
@@ -92,6 +95,12 @@ export class ReservationsService {
       where: { hotelId: actor.hotelId, isActive: true },
       orderBy: [{ nightlyRate: 'asc' }, { name: 'asc' }],
     });
+    const calendar = await this.priceCalendar(
+      actor,
+      dto.arrivalDate,
+      dto.modality,
+      stay.units,
+    );
 
     const results = [];
     for (const type of types) {
@@ -112,7 +121,14 @@ export class ReservationsService {
         },
         ...availability,
         fitsGuests: fitsCapacity(type, guests),
-        quote: computeQuote(type, stay, dto.modality, guests, ctx.settings),
+        quote: computeQuote(
+          type,
+          stay,
+          dto.modality,
+          guests,
+          ctx.settings,
+          calendar,
+        ),
       });
     }
     return {
@@ -233,7 +249,12 @@ export class ReservationsService {
       }),
     }));
 
-    return { days, rows, reservations };
+    const pricing = await this.ratePeriods.pricingCalendar(
+      actor.hotelId,
+      days[0],
+      days[days.length - 1],
+    );
+    return { days, rows, reservations, ...pricing };
   }
 
   // ---------------------------------------------------------------------
@@ -314,7 +335,20 @@ export class ReservationsService {
       this.assertGuest(actor, dto.guestId, dto.taxProfileId),
     ]);
     assertCapacity(type, guests);
-    const quote = computeQuote(type, stay, dto.modality, guests, ctx.settings);
+    const calendar = await this.priceCalendar(
+      actor,
+      dto.arrivalDate,
+      dto.modality,
+      stay.units,
+    );
+    const quote = computeQuote(
+      type,
+      stay,
+      dto.modality,
+      guests,
+      ctx.settings,
+      calendar,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       await lockRoomType(tx, type.id);
@@ -447,7 +481,20 @@ export class ReservationsService {
       dto.roomTypeId ?? current.roomTypeId,
     );
     assertCapacity(type, guests);
-    const quote = computeQuote(type, stay, modality, guests, ctx.settings);
+    const calendar = await this.priceCalendar(
+      actor,
+      stayChanged ? dto.arrivalDate! : todayIn(ctx.timeZone, current.checkIn),
+      modality,
+      stay.units,
+    );
+    const quote = computeQuote(
+      type,
+      stay,
+      modality,
+      guests,
+      ctx.settings,
+      calendar,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       await lockRoomType(tx, type.id);
@@ -525,6 +572,23 @@ export class ReservationsService {
   // ---------------------------------------------------------------------
   // Auxiliares
   // ---------------------------------------------------------------------
+
+  /** Temporadas y ajuste por día que tocan las noches de la estancia. */
+  private async priceCalendar(
+    actor: AuthUser,
+    arrivalDate: string,
+    modality: StayModality,
+    units: number,
+  ): Promise<PriceCalendar> {
+    const lastNight =
+      modality === 'NIGHTLY' ? addDaysTo(arrivalDate, units - 1) : arrivalDate;
+    const { seasons, weekday } = await this.ratePeriods.pricingCalendar(
+      actor.hotelId,
+      arrivalDate,
+      lastNight,
+    );
+    return { arrivalDate, seasons, weekday };
+  }
 
   private async context(actor: AuthUser): Promise<Context> {
     const [hotel, settings] = await Promise.all([

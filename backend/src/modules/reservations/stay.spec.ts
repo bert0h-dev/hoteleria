@@ -184,3 +184,89 @@ describe('peakOccupancy', () => {
     expect(peakOccupancy(stays, at('05T00:00'), at('10T00:00'))).toBe(1);
   });
 });
+
+describe('computeQuote con temporadas', () => {
+  const doble = {
+    nightlyRate: 1000,
+    includedAdults: 2,
+    extraAdultRate: 250,
+    extraChildRate: 100,
+  };
+  const calendar = {
+    arrivalDate: '2026-11-12', // jueves
+    seasons: [],
+    weekday: { days: [5, 6], percent: 15 },
+  };
+
+  it('por noche: cada noche con su ajuste; personas extra fijas', () => {
+    // Jue 1000, vie 1150, sáb 1150; 1 adulto extra × 3 = 750
+    const q = computeQuote(
+      doble,
+      { units: 3 },
+      'NIGHTLY',
+      { adults: 3, children: 0 },
+      settings,
+      calendar,
+    );
+    expect(q).toMatchObject({
+      baseAmount: 3300,
+      extrasAmount: 750,
+      totalAmount: 4050,
+    });
+    expect(q.detail.nights?.map((n) => n.source)).toEqual([
+      'base',
+      'weekday',
+      'weekday',
+    ]);
+  });
+
+  it('en temporada no se suma el ajuste de fin de semana', () => {
+    const q = computeQuote(
+      doble,
+      { units: 2 },
+      'NIGHTLY',
+      { adults: 2, children: 0 },
+      settings,
+      {
+        ...calendar,
+        arrivalDate: '2026-11-13', // viernes
+        seasons: [
+          {
+            name: 'Puente',
+            startDate: '2026-11-13',
+            endDate: '2026-11-16',
+            adjustmentPercent: 30,
+            priority: 0,
+          },
+        ],
+      },
+    );
+    expect(q.baseAmount).toBe(2600); // 1300 + 1300
+  });
+
+  it('por día y por horas usan el precio ajustado del día de entrada', () => {
+    const viernes = { ...calendar, arrivalDate: '2026-11-13' };
+    // 1150 × 120 % = 1380
+    expect(
+      computeQuote(
+        doble,
+        { units: 1 },
+        'DAILY',
+        { adults: 2, children: 0 },
+        settings,
+        viernes,
+      ).baseAmount,
+    ).toBe(1380);
+    // 1150 × 15 % = 172.5 → 173; mínimo 3 h = 519
+    expect(
+      computeQuote(
+        doble,
+        { units: 2 },
+        'HOURLY',
+        { adults: 2, children: 0 },
+        settings,
+        viernes,
+      ).baseAmount,
+    ).toBe(519);
+  });
+});

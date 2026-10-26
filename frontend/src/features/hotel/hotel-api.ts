@@ -5,6 +5,8 @@ import type { PricingSettings, TaxSettings } from './pricing';
 export interface HotelSettings extends PricingSettings, TaxSettings {
   hotelId: string;
   childMaxAge: number;
+  weekdayAdjustDays: number[];
+  weekdayAdjustPercent: number;
   checkInTime: string;
   checkOutTime: string;
   updatedAt: string;

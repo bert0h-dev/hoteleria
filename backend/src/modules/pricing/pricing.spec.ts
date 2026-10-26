@@ -1,5 +1,9 @@
 import {
+  adjustRate,
   calculateDayCheckOut,
+  calculateVariableNightlyStay,
+  nightAdjustment,
+  priceNights,
   calculateExtraGuests,
   calculateHourlyStay,
   calculateNightlyStay,
@@ -194,5 +198,87 @@ describe('calculateTaxBreakdown', () => {
     expect(
       calculateTaxBreakdown(500, { vatPercent: 0, lodgingTaxPercent: 0 }),
     ).toEqual({ subtotal: 500, vat: 0, lodgingTax: 0, total: 500 });
+  });
+});
+
+describe('temporadas y días de la semana', () => {
+  const seasons = [
+    {
+      name: 'Diciembre',
+      startDate: '2026-12-15',
+      endDate: '2027-01-06',
+      adjustmentPercent: 30,
+      priority: 0,
+    },
+    {
+      name: 'Navidad',
+      startDate: '2026-12-24',
+      endDate: '2026-12-25',
+      adjustmentPercent: 50,
+      priority: 0,
+    },
+    {
+      name: 'Baja',
+      startDate: '2026-09-01',
+      endDate: '2026-09-30',
+      adjustmentPercent: -15,
+      priority: 0,
+    },
+  ];
+  const weekend = { days: [5, 6], percent: 15 }; // viernes y sábado
+
+  it('aplica el ajuste por día de la semana fuera de temporada', () => {
+    // 2026-11-13 es viernes; 2026-11-12, jueves.
+    expect(nightAdjustment('2026-11-13', seasons, weekend)).toEqual({
+      adjustmentPercent: 15,
+      source: 'weekday',
+    });
+    expect(nightAdjustment('2026-11-12', seasons, weekend).source).toBe('base');
+  });
+
+  it('en temporada solo aplica la temporada (no se suma el fin de semana)', () => {
+    // 2026-12-18 es viernes, dentro de "Diciembre".
+    expect(nightAdjustment('2026-12-18', seasons, weekend)).toEqual({
+      adjustmentPercent: 30,
+      source: 'season',
+      seasonName: 'Diciembre',
+    });
+  });
+
+  it('si se enciman gana la de mayor prioridad y, si empatan, la más corta', () => {
+    expect(nightAdjustment('2026-12-24', seasons).seasonName).toBe('Navidad');
+    const conPrioridad = [
+      ...seasons,
+      { ...seasons[0], name: 'Alta', priority: 5 },
+    ];
+    expect(nightAdjustment('2026-12-24', conPrioridad).seasonName).toBe('Alta');
+  });
+
+  it('calcula cada noche y redondea al peso', () => {
+    const nights = priceNights(
+      999,
+      ['2026-09-10', '2026-11-13', '2026-12-24'],
+      seasons,
+      weekend,
+    );
+    // 999 × 0.85 = 849.15 → 849; × 1.15 = 1148.85 → 1149; × 1.5 = 1498.5 → 1499
+    expect(nights.map((n) => n.rate)).toEqual([849, 1149, 1499]);
+    expect(adjustRate(1000, -15)).toBe(850);
+  });
+
+  it('semana por bloques con precios variables', () => {
+    const flat = Array.from({ length: 10 }, () => ({ rate: 1000 }));
+    // Sin ajustes coincide con la fórmula fija: 6000 + 3000.
+    expect(calculateVariableNightlyStay(flat, defaults).total).toBe(9000);
+
+    const mixed = [1000, 1000, 1000, 1000, 1150, 1150, 1000].map((rate) => ({
+      rate,
+    }));
+    // (7300 × 600 / 700) = 6257.14 → 6257
+    expect(calculateVariableNightlyStay(mixed, defaults)).toEqual({
+      weeks: 1,
+      extraNights: 0,
+      total: 6257,
+    });
   });
 });

@@ -25,6 +25,12 @@ import {
   todayInHotel,
 } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { nightAdjustment } from '@/features/hotel/pricing';
+import {
+  formatPercent,
+  SEASON_COLORS,
+  type SeasonColor,
+} from '@/features/hotel/rate-periods-api';
 
 const RANGES = [7, 14, 30] as const;
 
@@ -159,6 +165,16 @@ export function ReservationsCalendarPage() {
                   </th>
                   {data.days.map((d) => {
                     const p = dayParts(d);
+                    const adj = nightAdjustment(d, data.seasons, data.weekday);
+                    const season = data.seasons.find(
+                      (s) => s.name === adj.seasonName,
+                    );
+                    const tag =
+                      adj.source === 'season'
+                        ? `${adj.seasonName} ${formatPercent(adj.adjustmentPercent)}`
+                        : adj.source === 'weekday'
+                          ? `Ajuste por día ${formatPercent(adj.adjustmentPercent)}`
+                          : undefined;
                     return (
                       <th
                         key={d}
@@ -179,6 +195,19 @@ export function ReservationsCalendarPage() {
                         >
                           {p.day}
                         </span>
+                        <span
+                          title={tag}
+                          className={cn(
+                            'mx-auto mt-1 block h-1 w-8 rounded-full',
+                            adj.source === 'season'
+                              ? SEASON_COLORS[
+                                  (season?.color ?? 'violet') as SeasonColor
+                                ].dot
+                              : adj.source === 'weekday'
+                                ? 'bg-foreground/25'
+                                : 'bg-transparent',
+                          )}
+                        />
                       </th>
                     );
                   })}
@@ -246,6 +275,23 @@ export function ReservationsCalendarPage() {
           <Legend className="bg-emerald-500/30" label="Disponible" />
           <Legend className="bg-amber-500/40" label="Quedan pocas" />
           <Legend className="bg-rose-500/40" label="Lleno" />
+          {data?.seasons.map((s) => (
+            <Legend
+              key={s.id}
+              className={
+                SEASON_COLORS[s.color as SeasonColor]?.dot ?? 'bg-violet-500'
+              }
+              label={`${s.name} ${formatPercent(s.adjustmentPercent)}`}
+            />
+          ))}
+          {data &&
+            data.weekday.percent !== 0 &&
+            data.weekday.days.length > 0 && (
+              <Legend
+                className="bg-foreground/25"
+                label={`Ajuste por día ${formatPercent(data.weekday.percent)}`}
+              />
+            )}
           <span className="ml-auto">
             Cada celda: habitaciones libres de las vendibles ese día.
           </span>

@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { CatalogsModule } from './modules/catalogs/catalogs.module.js';
 import { GuestsModule } from './modules/guests/guests.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { RatePeriodsModule } from './modules/rate-periods/rate-periods.module.js';
 import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { HotelModule } from './modules/hotel/hotel.module.js';
 import { RoomTypesModule } from './modules/room-types/room-types.module.js';
@@ -31,6 +32,7 @@ import { UsersModule } from './modules/users/users.module.js';
     RoomsModule,
     GuestsModule,
     ReservationsModule,
+    RatePeriodsModule,
     CatalogsModule,
     HealthModule,
   ],

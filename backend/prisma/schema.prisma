@@ -41,6 +41,7 @@ model Hotel {
   guests       Guest[]
   taxProfiles  GuestTaxProfile[]
   reservations Reservation[]
+  ratePeriods  RatePeriod[]
 
   @@map("hotels")
 }
@@ -143,6 +144,10 @@ model HotelSettings {
   childMaxAge           Int      @default(12) @map("child_max_age")
   /// Siguiente número de folio de reserva (R-000001…).
   nextReservationNumber Int      @default(1) @map("next_reservation_number")
+  /// Días de la semana con ajuste de precio (0 = domingo … 6 = sábado).
+  weekdayAdjustDays     Int[]    @default([]) @map("weekday_adjust_days")
+  /// Ajuste en % para esos días (p. ej. 15 = +15 %). No aplica en temporada.
+  weekdayAdjustPercent  Int      @default(0) @map("weekday_adjust_percent")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
@@ -387,4 +392,27 @@ model Reservation {
   @@index([hotelId, status])
   @@index([guestId])
   @@map("reservations")
+}
+
+/// Temporada: ajuste porcentual del precio por noche entre dos fechas
+/// (inclusive). Si aplica, el ajuste por día de la semana no se suma.
+model RatePeriod {
+  id                String   @id @default(uuid()) @db.Uuid
+  hotelId           String   @map("hotel_id") @db.Uuid
+  name              String
+  startDate         DateTime @map("start_date") @db.Date
+  endDate           DateTime @map("end_date") @db.Date
+  /// Ajuste en %: 30 = +30 %, -15 = 15 % de descuento.
+  adjustmentPercent Int      @map("adjustment_percent")
+  /// Si dos temporadas se enciman gana la de mayor prioridad.
+  priority          Int      @default(0)
+  color             String   @default("violet")
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId, startDate, endDate])
+  @@map("rate_periods")
 }

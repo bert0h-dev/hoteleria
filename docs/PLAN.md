@@ -26,10 +26,10 @@ en las tablas principales).
 - [x] **Fase 4 — Huéspedes:** registro y búsqueda.
   - [x] Backend: huéspedes (titular), búsqueda sin acentos, duplicados, VIP y bloqueo, datos fiscales CFDI 4.0 (varios RFC por huésped) y catálogos del SAT.
   - [x] Frontend: lista, ficha, formulario con aviso de duplicados, datos fiscales y componente "buscar o crear huésped".
-- [ ] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.
+- [x] **Fase 5 — Reservas:** disponibilidad, creación, cancelación y prevención de doble reserva.
   - [x] Backend: reserva por tipo (habitación al llegar), modalidades noche/día/horas en la zona del hotel, precio congelado, disponibilidad con pico de ocupación y candado por tipo, folios, cotizar, calendario, modificar, cancelar y no-show.
   - [x] Frontend: calendario de ocupación (mapa de calor por tipo y día), llegadas y salidas de hoy, nueva reserva con cotización en vivo, lista, detalle y estancias en la ficha del huésped.
-  - [ ] Temporadas y fines de semana (PR siguiente).
+  - [x] Temporadas y fines de semana: ajuste por temporada o por día de la semana (nunca ambos), noche por noche; configuración en pestañas.
 - [ ] **Fase 6 — Check-in / Check-out.**
 - [ ] **Fase 7 — Cobros:** cargos, pagos y folio del huésped.
 - [ ] **Fase 8 — Dashboard y reportes:** ocupación, llegadas y salidas del día.

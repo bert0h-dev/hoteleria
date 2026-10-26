@@ -55,7 +55,7 @@ PR separados.
 ## 🟡 Prioridad media — se integran en su fase
 
 ### Tarifas
-- [ ] **Temporadas y fines de semana:** precios distintos por fechas (Semana
+- [x] **Temporadas y fines de semana:** precios distintos por fechas (Semana
       Santa, diciembre) o por día (viernes y sábado). → Fase 5
 - [ ] **Precio manual por tipo:** sobrescribir una tarifa calculada (p. ej.
       la Suite por hora con precio fijo).

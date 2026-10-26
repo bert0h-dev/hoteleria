@@ -162,3 +162,105 @@ export function calculateTaxBreakdown(
     total: totalCents / 100,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Temporadas y días de la semana
+// ---------------------------------------------------------------------------
+
+export interface SeasonRule {
+  name: string;
+  /** YYYY-MM-DD, inclusive. */
+  startDate: string;
+  endDate: string;
+  adjustmentPercent: number;
+  priority: number;
+  color?: string;
+}
+
+export interface WeekdayRule {
+  /** 0 = domingo … 6 = sábado. */
+  days: number[];
+  percent: number;
+}
+
+export interface NightPrice {
+  /** YYYY-MM-DD de la noche (la fecha en que se entra esa noche). */
+  date: string;
+  rate: number;
+  adjustmentPercent: number;
+  source: 'season' | 'weekday' | 'base';
+  seasonName?: string;
+}
+
+const dayLength = (s: SeasonRule) =>
+  Date.parse(`${s.endDate}T00:00:00Z`) - Date.parse(`${s.startDate}T00:00:00Z`);
+
+/**
+ * Ajuste de una noche: si cae en una temporada aplica la temporada (la de
+ * mayor prioridad; si empatan, la más corta). Si no, el ajuste por día de
+ * la semana. Nunca ambos.
+ */
+export function nightAdjustment(
+  date: string,
+  seasons: SeasonRule[],
+  weekday?: WeekdayRule,
+): Pick<NightPrice, 'adjustmentPercent' | 'source' | 'seasonName'> {
+  const season = seasons
+    .filter((s) => s.startDate <= date && date <= s.endDate)
+    .sort((a, b) => b.priority - a.priority || dayLength(a) - dayLength(b))[0];
+  if (season) {
+    return {
+      adjustmentPercent: season.adjustmentPercent,
+      source: 'season',
+      seasonName: season.name,
+    };
+  }
+  const dow = new Date(`${date}T12:00:00Z`).getUTCDay();
+  if (weekday && weekday.percent !== 0 && weekday.days.includes(dow)) {
+    return { adjustmentPercent: weekday.percent, source: 'weekday' };
+  }
+  return { adjustmentPercent: 0, source: 'base' };
+}
+
+/** Precio por noche ajustado, redondeado al peso. */
+export function adjustRate(rate: number, percent: number): number {
+  return Math.round((rate * (100 + percent)) / 100);
+}
+
+/** Precio de cada noche de una estancia. */
+export function priceNights(
+  nightlyRate: number,
+  dates: string[],
+  seasons: SeasonRule[],
+  weekday?: WeekdayRule,
+): NightPrice[] {
+  return dates.map((date) => {
+    const adj = nightAdjustment(date, seasons, weekday);
+    return {
+      date,
+      rate: adjustRate(nightlyRate, adj.adjustmentPercent),
+      ...adj,
+    };
+  });
+}
+
+/**
+ * Estancia por noches con precios variables: cada bloque de 7 noches
+ * cuesta la suma de sus noches × (porcentaje semanal / 700); con el 600 %
+ * por defecto la semana sigue "regalando" una noche. Las noches sueltas
+ * se cobran a su precio.
+ */
+export function calculateVariableNightlyStay(
+  nights: Pick<NightPrice, 'rate'>[],
+  settings: Pick<PricingSettings, 'weekRatePercent'>,
+) {
+  const weeks = Math.floor(nights.length / 7);
+  let total = 0;
+  for (let w = 0; w < weeks; w++) {
+    const block = nights.slice(w * 7, w * 7 + 7);
+    const sum = block.reduce((acc, n) => acc + n.rate, 0);
+    total += Math.round((sum * settings.weekRatePercent) / 700);
+  }
+  for (const n of nights.slice(weeks * 7)) total += n.rate;
+  return { weeks, extraNights: nights.length % 7, total };
+}
