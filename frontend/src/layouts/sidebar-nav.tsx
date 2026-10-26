@@ -34,7 +34,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               <NavLink
                 key={to}
                 to={to}
-                end={to === '/'}
+                end={to === '/' || to === '/caja'}
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(

@@ -37,6 +37,8 @@ function useFolioMutation<TInput>(
       queryClient.setQueryData(keys.folio(reservationId), folio);
       // Recepción muestra saldos.
       await queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      // Los cobros cambian los totales de la caja.
+      await queryClient.invalidateQueries({ queryKey: ['cash'] });
     },
   });
 }

@@ -2,6 +2,10 @@ import {
   BedDouble,
   CalendarDays,
   ConciergeBell,
+  HandCoins,
+  History,
+  ScrollText,
+  Wallet,
   LayoutDashboard,
   Settings,
   Users,
@@ -31,6 +35,18 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
         icon: ConciergeBell,
         roles: ['ADMIN', 'RECEPTION'],
       },
+      {
+        to: '/caja',
+        label: 'Caja',
+        icon: Wallet,
+        roles: ['ADMIN', 'RECEPTION'],
+      },
+      {
+        to: '/cuentas-por-cobrar',
+        label: 'Cuentas por cobrar',
+        icon: HandCoins,
+        roles: ['ADMIN', 'RECEPTION'],
+      },
     ],
   },
   {
@@ -54,6 +70,18 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Administración',
     items: [
+      {
+        to: '/caja/cortes',
+        label: 'Cortes de caja',
+        icon: History,
+        roles: ['ADMIN'],
+      },
+      {
+        to: '/bitacora',
+        label: 'Bitácora',
+        icon: ScrollText,
+        roles: ['ADMIN'],
+      },
       { to: '/usuarios', label: 'Usuarios', icon: Users, roles: ['ADMIN'] },
       {
         to: '/configuracion',

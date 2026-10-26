@@ -33,6 +33,14 @@ export const router = createBrowserRouter([
           })),
       },
       {
+        // Reporte de turno / corte de caja: sin menú, para imprimir.
+        path: '/caja/turnos/:id',
+        lazy: () =>
+          import('@/pages/cash/shift-report-page').then((m) => ({
+            Component: m.ShiftReportPage,
+          })),
+      },
+      {
         // Tarjeta de registro: sin menú, para imprimir.
         path: '/reservas/:id/registro',
         lazy: () =>
@@ -111,6 +119,20 @@ export const router = createBrowserRouter([
                 ],
               },
               {
+                path: 'caja',
+                lazy: () =>
+                  import('@/pages/cash/cash-page').then((m) => ({
+                    Component: m.CashPage,
+                  })),
+              },
+              {
+                path: 'cuentas-por-cobrar',
+                lazy: () =>
+                  import('@/pages/receivables-page').then((m) => ({
+                    Component: m.ReceivablesPage,
+                  })),
+              },
+              {
                 path: 'huespedes',
                 lazy: () =>
                   import('@/pages/guests-page').then((m) => ({
@@ -127,6 +149,20 @@ export const router = createBrowserRouter([
                 lazy: () =>
                   import('@/pages/settings-page').then((m) => ({
                     Component: m.SettingsPage,
+                  })),
+              },
+              {
+                path: 'caja/cortes',
+                lazy: () =>
+                  import('@/pages/cash/cash-history-page').then((m) => ({
+                    Component: m.CashHistoryPage,
+                  })),
+              },
+              {
+                path: 'bitacora',
+                lazy: () =>
+                  import('@/pages/audit-page').then((m) => ({
+                    Component: m.AuditPage,
                   })),
               },
               {
