@@ -161,6 +161,43 @@ export interface Reservation {
   taxProfile: { id: string; rfc: string; legalName: string } | null;
   createdBy: { id: string; name: string };
   cancelledBy: { id: string; name: string } | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
+  checkedInBy: { id: string; name: string } | null;
+  checkedOutBy: { id: string; name: string } | null;
+  /** Tipo reservado originalmente (si hubo mejora de categoría). */
+  bookedRoomType: { id: string; name: string } | null;
+  upgradeReason: string | null;
+  charges: StayCharge[];
+}
+
+export interface StayCharge {
+  id: string;
+  kind: 'EARLY_CHECK_IN' | 'LATE_CHECK_OUT';
+  status: 'SUGGESTED' | 'CONFIRMED' | 'WAIVED';
+  description: string;
+  hours: number;
+  amount: number;
+  createdAt: string;
+}
+
+/** Habitación que se puede asignar en el check-in o un cambio. */
+export interface AssignableRoom {
+  id: string;
+  number: string;
+  floor: number;
+  roomType: { id: string; name: string; nightlyRate: number };
+  /** De otro tipo (mejora de categoría). */
+  upgrade: boolean;
+  assignable: boolean;
+  lastCleanedAt: string | null;
+}
+
+export interface FrontDesk {
+  today: string;
+  arrivals: Reservation[];
+  noShowCandidates: Reservation[];
+  inHouse: (Reservation & { departsToday: boolean; overdue: boolean })[];
 }
 
 export interface CalendarDay {

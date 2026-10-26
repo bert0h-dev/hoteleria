@@ -25,6 +25,14 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       {
+        // Tarjeta de registro: sin menú, para imprimir.
+        path: '/reservas/:id/registro',
+        lazy: () =>
+          import('@/pages/registration-card-page').then((m) => ({
+            Component: m.RegistrationCardPage,
+          })),
+      },
+      {
         path: '/',
         element: <MainLayout />,
         children: [
@@ -62,6 +70,13 @@ export const router = createBrowserRouter([
           {
             element: <RequireRole roles={['ADMIN', 'RECEPTION']} />,
             children: [
+              {
+                path: 'recepcion',
+                lazy: () =>
+                  import('@/pages/front-desk-page').then((m) => ({
+                    Component: m.FrontDeskPage,
+                  })),
+              },
               {
                 path: 'reservas',
                 lazy: () =>

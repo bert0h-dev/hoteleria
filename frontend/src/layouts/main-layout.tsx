@@ -33,9 +33,9 @@ export function MainLayout() {
           <SidebarNav />
         </div>
         <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
-          <p className="text-sm font-medium">Fase 5 de 9</p>
+          <p className="text-sm font-medium">Fase 6 de 9</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Pronto: check-in, check-out y cobros.
+            Pronto: cobros, folios y reportes.
           </p>
         </div>
       </aside>

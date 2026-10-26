@@ -50,6 +50,14 @@ export interface Room {
   /** Último día (YYYY-MM-DD) del bloqueo; null = indefinido o sin bloqueo. */
   blockedUntil: string | null;
   blockOverdue: boolean;
+  /** Huésped en casa, si la habitación está ocupada. */
+  currentStay: {
+    id: string;
+    code: string;
+    checkIn: string;
+    checkOut: string;
+    guest: { id: string; firstName: string; lastName: string; isVip: boolean };
+  } | null;
   roomType: Pick<RoomType, 'id' | 'name' | 'nightlyRate'>;
 }
 

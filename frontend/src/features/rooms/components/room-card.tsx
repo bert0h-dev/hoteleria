@@ -1,5 +1,6 @@
-import { AlertTriangle, CalendarClock, Sparkles } from 'lucide-react';
-import { formatDay, formatRelative } from '@/lib/format';
+import { useState } from 'react';
+import { AlertTriangle, CalendarClock, LogOut, Sparkles } from 'lucide-react';
+import { formatDay, formatDayTime, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { isBlockingStatus, ROOM_STATUS } from '../room-status';
 import type { Room } from '../types';
@@ -11,6 +12,8 @@ export function RoomCard({
   room: Room;
   onClick: () => void;
 }) {
+  // Hora de referencia para marcar salidas vencidas (no en cada render).
+  const [renderedAt] = useState(() => Date.now());
   const style = ROOM_STATUS[room.status];
   const Icon = style.icon;
 
@@ -54,6 +57,26 @@ export function RoomCard({
           {room.isActive ? style.label : 'Dada de baja'}
         </p>
       </div>
+
+      {room.currentStay && (
+        <div className="space-y-0.5 rounded-lg bg-background/70 px-2 py-1.5">
+          <p className="truncate text-xs font-semibold">
+            {room.currentStay.guest.isVip && '★ '}
+            {room.currentStay.guest.firstName} {room.currentStay.guest.lastName}
+          </p>
+          <p
+            className={cn(
+              'flex items-center gap-1 text-[11px]',
+              new Date(room.currentStay.checkOut).getTime() < renderedAt
+                ? 'font-medium text-destructive'
+                : 'text-muted-foreground',
+            )}
+          >
+            <LogOut className="size-3 shrink-0" />
+            {formatDayTime(room.currentStay.checkOut)}
+          </p>
+        </div>
+      )}
 
       {room.isActive && isBlockingStatus(room.status) && (
         <p

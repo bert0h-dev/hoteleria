@@ -7,7 +7,9 @@ import {
 import { api } from '@/lib/api';
 import type { Paginated } from '@/features/users/users-api';
 import type {
+  AssignableRoom,
   CalendarData,
+  FrontDesk,
   QuoteResult,
   Reservation,
   ReservationSource,
@@ -88,7 +90,11 @@ export function useReservation(id: string | null) {
 
 function useInvalidate() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: key });
+  return async () => {
+    await queryClient.invalidateQueries({ queryKey: key });
+    // El check-in/out cambia el estado de las habitaciones.
+    await queryClient.invalidateQueries({ queryKey: ['rooms'] });
+  };
 }
 
 export function useSaveReservation() {
@@ -120,6 +126,109 @@ export function useNoShow() {
   return useMutation({
     mutationFn: async (id: string) =>
       (await api.post<Reservation>(`/reservations/${id}/no-show`)).data,
+    onSuccess: invalidate,
+  });
+}
+
+// --- Recepción ---
+
+export function useFrontDesk() {
+  return useQuery({
+    queryKey: [...key, 'front-desk'],
+    queryFn: async () =>
+      (await api.get<FrontDesk>('/reservations/front-desk')).data,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useAvailableRooms(reservationId: string | null) {
+  return useQuery({
+    queryKey: [...key, 'available-rooms', reservationId],
+    queryFn: async () =>
+      (
+        await api.get<AssignableRoom[]>(
+          `/reservations/${reservationId}/available-rooms`,
+        )
+      ).data,
+    enabled: !!reservationId,
+  });
+}
+
+export function useCheckIn() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      roomId,
+      reason,
+    }: {
+      id: string;
+      roomId: string;
+      reason?: string;
+    }) =>
+      (
+        await api.post<Reservation>(`/reservations/${id}/check-in`, {
+          roomId,
+          reason,
+        })
+      ).data,
+    onSuccess: invalidate,
+  });
+}
+
+export function useWalkIn() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (
+      input: ReservationInput & { roomId: string; reason?: string },
+    ) => (await api.post<Reservation>('/reservations/walk-in', input)).data,
+    onSuccess: invalidate,
+  });
+}
+
+export function useMoveRoom() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      roomId,
+      reason,
+    }: {
+      id: string;
+      roomId: string;
+      reason?: string;
+    }) =>
+      (
+        await api.post<Reservation>(`/reservations/${id}/move`, {
+          roomId,
+          reason,
+        })
+      ).data,
+    onSuccess: invalidate,
+  });
+}
+
+export function useExtendStay() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...input
+    }: {
+      id: string;
+      departureDate?: string;
+      units?: number;
+    }) =>
+      (await api.post<Reservation>(`/reservations/${id}/extend`, input)).data,
+    onSuccess: invalidate,
+  });
+}
+
+export function useCheckOut() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      (await api.post<Reservation>(`/reservations/${id}/check-out`)).data,
     onSuccess: invalidate,
   });
 }

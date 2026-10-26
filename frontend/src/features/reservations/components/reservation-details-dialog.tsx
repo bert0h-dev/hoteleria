@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import {
+  ArrowUpCircle,
   BedDouble,
+  CalendarPlus,
+  DoorOpen,
+  Printer,
+  Repeat,
   CircleSlash,
   FileText,
   Loader2,
@@ -37,7 +42,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { GuestBadges } from '@/features/guests/components/guest-badges';
 import { getErrorMessage } from '@/lib/api';
-import { formatDateTime, formatDayTime } from '@/lib/format';
+import { Link } from 'react-router';
+import { formatDateTime, formatDayTime, formatMoney } from '@/lib/format';
 import {
   useCancelReservation,
   useNoShow,
@@ -47,6 +53,12 @@ import { MODALITIES, SOURCES, unitLabel, type Reservation } from '../types';
 import { PriceSummary } from './price-summary';
 import { ReservationFormDialog } from './reservation-form-dialog';
 import { ReservationStatusBadge } from './reservation-status-badge';
+import {
+  CheckInDialog,
+  CheckOutDialog,
+  ExtendStayDialog,
+  MoveRoomDialog,
+} from './stay-dialogs';
 
 export function ReservationDetailsDialog({
   reservationId,
@@ -77,6 +89,10 @@ export function ReservationDetailsDialog({
 function Details({ reservation: r }: { reservation: Reservation }) {
   const [editing, setEditing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [stayAction, setStayAction] = useState<
+    'check-in' | 'check-out' | 'extend' | 'move' | null
+  >(null);
+  const isInHouse = r.status === 'CHECKED_IN';
   const noShow = useNoShow();
   const isConfirmed = r.status === 'CONFIRMED';
   // Se toma la hora al abrir el detalle (no en cada render).
@@ -94,8 +110,20 @@ function Details({ reservation: r }: { reservation: Reservation }) {
   };
 
   const facts = [
-    { icon: LogIn, label: 'Entrada', value: formatDayTime(r.checkIn) },
-    { icon: LogOut, label: 'Salida', value: formatDayTime(r.checkOut) },
+    {
+      icon: LogIn,
+      label: r.checkedInAt ? 'Entró' : 'Entrada',
+      value: r.checkedInAt
+        ? `${formatDayTime(r.checkedInAt)} · ${r.checkedInBy?.name ?? ''}`
+        : formatDayTime(r.checkIn),
+    },
+    {
+      icon: LogOut,
+      label: r.checkedOutAt ? 'Salió' : 'Salida',
+      value: r.checkedOutAt
+        ? `${formatDayTime(r.checkedOutAt)} · ${r.checkedOutBy?.name ?? ''}`
+        : formatDayTime(r.checkOut),
+    },
     {
       icon: BedDouble,
       label: 'Habitación',
@@ -139,8 +167,50 @@ function Details({ reservation: r }: { reservation: Reservation }) {
               · creada por {r.createdBy.name} el {formatDateTime(r.createdAt)}
             </DialogDescription>
           </div>
+          {(isInHouse || r.status === 'CHECKED_OUT') && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                render={
+                  <Link to={`/reservas/${r.id}/registro`} target="_blank" />
+                }
+              >
+                <Printer />
+                Tarjeta
+              </Button>
+              {isInHouse && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setStayAction('extend')}
+                  >
+                    <CalendarPlus />
+                    Extender
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setStayAction('move')}
+                  >
+                    <Repeat />
+                    Cambiar
+                  </Button>
+                  <Button size="sm" onClick={() => setStayAction('check-out')}>
+                    <LogOut />
+                    Check-out
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           {isConfirmed && (
             <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => setStayAction('check-in')}>
+                <DoorOpen />
+                Check-in
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -216,6 +286,42 @@ function Details({ reservation: r }: { reservation: Reservation }) {
             ))}
           </dl>
 
+          {r.bookedRoomType && (
+            <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3 text-sm">
+              <p className="flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-300">
+                <ArrowUpCircle className="size-4" />
+                Mejora de categoría: {r.bookedRoomType.name} → {r.roomType.name}
+              </p>
+              <p className="text-muted-foreground">{r.upgradeReason}</p>
+            </div>
+          )}
+
+          {r.charges.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Cargos adicionales
+              </p>
+              {r.charges.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+                >
+                  <span>
+                    {c.description}
+                    {c.status === 'SUGGESTED' && (
+                      <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                        Sugerido · se cobra en Cobros
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {formatMoney(c.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {r.notes && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
               <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
@@ -250,6 +356,22 @@ function Details({ reservation: r }: { reservation: Reservation }) {
         reservation={r}
         open={cancelling}
         onOpenChange={setCancelling}
+      />
+      <CheckInDialog
+        reservation={stayAction === 'check-in' ? r : null}
+        onOpenChange={(o) => !o && setStayAction(null)}
+      />
+      <CheckOutDialog
+        reservation={stayAction === 'check-out' ? r : null}
+        onOpenChange={(o) => !o && setStayAction(null)}
+      />
+      <ExtendStayDialog
+        reservation={stayAction === 'extend' ? r : null}
+        onOpenChange={(o) => !o && setStayAction(null)}
+      />
+      <MoveRoomDialog
+        reservation={stayAction === 'move' ? r : null}
+        onOpenChange={(o) => !o && setStayAction(null)}
       />
     </>
   );

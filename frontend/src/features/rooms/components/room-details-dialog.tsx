@@ -9,6 +9,7 @@ import {
   Sparkles,
   StickyNote,
 } from 'lucide-react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -34,6 +35,7 @@ import {
   addDays,
   formatDateTime,
   formatDay,
+  formatDayTime,
   formatMoney,
   formatRelative,
   todayInHotel,
@@ -145,6 +147,34 @@ function RoomDetails({
               </div>
             )}
           </dl>
+
+          {room.currentStay && (
+            <div className="space-y-2 rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
+              <p className="text-xs font-semibold tracking-wider text-rose-700 uppercase dark:text-rose-300">
+                Huésped en casa
+              </p>
+              <p className="font-medium">
+                {room.currentStay.guest.firstName}{' '}
+                {room.currentStay.guest.lastName}{' '}
+                <span className="font-mono text-xs text-muted-foreground">
+                  {room.currentStay.code}
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Entró {formatDayTime(room.currentStay.checkIn)} · sale{' '}
+                {formatDayTime(room.currentStay.checkOut)}
+              </p>
+              {hasRole('ADMIN', 'RECEPTION') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<Link to="/recepcion" />}
+                >
+                  Ir a recepción (check-out, extender, cambiar)
+                </Button>
+              )}
+            </div>
+          )}
 
           {room.isActive && user && (
             <StatusChanger key={room.status} room={room} role={user.role} />
