@@ -29,6 +29,11 @@ export const phoneField = z
     'Usa solo números, espacios, +, ( ) y guiones (7 a 20 caracteres)',
   );
 
+const permissions = {
+  canAuthorize: z.boolean(),
+  canDiscountUnlimited: z.boolean(),
+};
+
 const employeeData = {
   phone: phoneField,
   employeeNumber: z
@@ -50,12 +55,14 @@ export const createUserSchema = z.object({
   role,
   password: passwordField,
   ...employeeData,
+  ...permissions,
 });
 
 export const editUserSchema = z.object({
   name: nameField,
   role,
   ...employeeData,
+  ...permissions,
 });
 
 export const changePasswordSchema = z

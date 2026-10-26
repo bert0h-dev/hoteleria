@@ -25,6 +25,14 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       {
+        // Recibo de pago: sin menú, para imprimir.
+        path: '/reservas/:id/recibo/:paymentId',
+        lazy: () =>
+          import('@/pages/receipt-page').then((m) => ({
+            Component: m.ReceiptPage,
+          })),
+      },
+      {
         // Tarjeta de registro: sin menú, para imprimir.
         path: '/reservas/:id/registro',
         lazy: () =>

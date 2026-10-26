@@ -35,7 +35,7 @@ import {
 } from '@/features/reservations/reservations-api';
 import { unitLabel, type Reservation } from '@/features/reservations/types';
 import { getErrorMessage } from '@/lib/api';
-import { formatDayTime, todayInHotel } from '@/lib/format';
+import { formatCents, formatDayTime, todayInHotel } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 type Action = 'check-in' | 'check-out' | 'extend' | 'move' | 'guests';
@@ -192,6 +192,12 @@ export function FrontDeskPage() {
                 <>
                   sale {formatDayTime(r.checkOut)} ·{' '}
                   {unitLabel(r.modality, r.units)}
+                  {r.balanceCents > 0 && (
+                    <span className="font-medium text-amber-700 dark:text-amber-300">
+                      {' '}
+                      · debe {formatCents(r.balanceCents)}
+                    </span>
+                  )}
                   {r.overdue && (
                     <span className="font-medium text-rose-600">
                       {' '}

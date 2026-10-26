@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,15 +14,18 @@ import {
 } from '@/components/ui/dialog';
 import {
   Field,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/features/auth/auth-context';
 import type { User } from '@/features/auth/types';
 import { getErrorMessage } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { RoleSelect } from './role-select';
 import {
   createUserSchema,
@@ -40,6 +43,8 @@ const EMPTY: CreateUserValues = {
   phone: '',
   employeeNumber: '',
   hireDate: '',
+  canAuthorize: false,
+  canDiscountUnlimited: false,
 };
 
 /** Crea un usuario (sin `user`) o edita uno existente. */
@@ -71,6 +76,8 @@ export function UserFormDialog({
     ),
     defaultValues: EMPTY,
   });
+  // Con rol de limpieza, los permisos de cobro se deshabilitan.
+  const isHousekeeping = useWatch({ control, name: 'role' }) === 'HOUSEKEEPING';
 
   useEffect(() => {
     if (open) {
@@ -84,6 +91,8 @@ export function UserFormDialog({
               phone: user.phone ?? '',
               employeeNumber: user.employeeNumber ?? '',
               hireDate: user.hireDate?.slice(0, 10) ?? '',
+              canAuthorize: user.canAuthorize,
+              canDiscountUnlimited: user.canDiscountUnlimited,
             }
           : EMPTY,
       );
@@ -104,6 +113,10 @@ export function UserFormDialog({
           name: values.name,
           role: values.role,
           ...employee,
+          // Limpieza nunca tiene permisos de cobro.
+          canAuthorize: values.role !== 'HOUSEKEEPING' && values.canAuthorize,
+          canDiscountUnlimited:
+            values.role !== 'HOUSEKEEPING' && values.canDiscountUnlimited,
         });
         toast.success('Usuario actualizado');
       } else {
@@ -226,6 +239,70 @@ export function UserFormDialog({
                 <FieldError errors={[errors.hireDate]} />
               </Field>
             </div>
+
+            {isEdit && (
+              <div
+                className={cn(
+                  'space-y-2 rounded-xl border p-3',
+                  isHousekeeping && 'bg-muted/40',
+                )}
+              >
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Permisos de cobro
+                </p>
+                {isHousekeeping && (
+                  <p className="text-xs text-muted-foreground">
+                    El personal de limpieza no cobra ni autoriza; estos permisos
+                    no aplican a su rol.
+                  </p>
+                )}
+                <Controller
+                  control={control}
+                  name="canAuthorize"
+                  render={({ field }) => (
+                    <Field orientation="horizontal">
+                      <FieldContent>
+                        <FieldLabel htmlFor="perm-authorize">
+                          Puede autorizar
+                        </FieldLabel>
+                        <FieldDescription>
+                          Autoriza con su PIN descuentos sobre el tope,
+                          condonaciones y salidas con saldo.
+                        </FieldDescription>
+                      </FieldContent>
+                      <Switch
+                        id="perm-authorize"
+                        checked={!isHousekeeping && field.value}
+                        disabled={isHousekeeping}
+                        onCheckedChange={field.onChange}
+                      />
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="canDiscountUnlimited"
+                  render={({ field }) => (
+                    <Field orientation="horizontal">
+                      <FieldContent>
+                        <FieldLabel htmlFor="perm-discount">
+                          Descuentos sin límite
+                        </FieldLabel>
+                        <FieldDescription>
+                          Aplica descuentos sin pedir autorización.
+                        </FieldDescription>
+                      </FieldContent>
+                      <Switch
+                        id="perm-discount"
+                        checked={!isHousekeeping && field.value}
+                        disabled={isHousekeeping}
+                        onCheckedChange={field.onChange}
+                      />
+                    </Field>
+                  )}
+                />
+              </div>
+            )}
 
             {!isEdit && (
               <Field data-invalid={!!errors.password}>

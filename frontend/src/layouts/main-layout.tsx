@@ -5,6 +5,7 @@ import { Logo } from '@/components/logo';
 import { useHotel } from '@/features/hotel/hotel-api';
 import { setHotelTimeZone } from '@/lib/format';
 import { ThemePicker } from '@/features/theme/theme-picker';
+import { ExchangeRateIndicator } from '@/features/billing/components/exchange-rate';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -72,6 +73,7 @@ export function MainLayout() {
             <Logo />
           </div>
           <div className="ml-auto flex items-center gap-1">
+            <ExchangeRateIndicator />
             <ThemePicker />
             <UserMenu />
           </div>

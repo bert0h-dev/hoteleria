@@ -10,6 +10,7 @@ import {
   Printer,
   Repeat,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/user-avatar';
@@ -29,6 +30,7 @@ import { useGuest } from '@/features/guests/guests-api';
 import { getErrorMessage } from '@/lib/api';
 import {
   addDays,
+  formatCents,
   formatDayTime,
   formatMoney,
   todayInHotel,
@@ -44,6 +46,11 @@ import {
 import { MODALITIES, unitLabel, type Reservation } from '../types';
 import { GuestCountStepper } from './guest-count-stepper';
 import { RoomPicker } from './room-picker';
+import { useFolio } from '@/features/billing/billing-api';
+import { PaymentDialog } from '@/features/billing/components/folio-dialogs';
+import { useAuthorizedAction } from '@/features/billing/use-authorized-action';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 type DialogProps = {
   reservation: Reservation | null;
@@ -534,17 +541,40 @@ function CheckOutForm({
   onDone: () => void;
 }) {
   const checkOut = useCheckOut();
+  const { data: folio } = useFolio(r.id);
+  const { run, dialog } = useAuthorizedAction();
+  const [paying, setPaying] = useState(false);
+  const [balanceReason, setBalanceReason] = useState('');
   // Hora al abrir el diálogo (no en cada render).
   const [openedAt] = useState(() => Date.now());
   const late = new Date(r.checkOut).getTime() < openedAt;
+  const balance = folio?.totals.balanceCents ?? 0;
+  const suggested =
+    folio?.stayCharges.filter((c) => c.status === 'SUGGESTED') ?? [];
 
   const submit = async () => {
+    if (balance > 0 && !balanceReason.trim()) {
+      toast.error(
+        'Hay saldo pendiente: cóbralo o indica el motivo para dejarlo pendiente',
+      );
+      return;
+    }
     try {
-      const updated = await checkOut.mutateAsync(r.id);
-      const charge = updated.charges.find((c) => c.kind === 'LATE_CHECK_OUT');
+      let updated: Reservation | null = null;
+      const ok = await run(async (authorization) => {
+        updated = await checkOut.mutateAsync({
+          id: r.id,
+          balanceReason: balance > 0 ? balanceReason.trim() : undefined,
+          authorization,
+        });
+      });
+      if (!ok || !updated) return;
+      const charge = (updated as Reservation).charges.find(
+        (c) => c.kind === 'LATE_CHECK_OUT',
+      );
       toast.success(`Check-out de ${r.guest.firstName}`, {
         description: charge
-          ? `Salida tardía: cargo sugerido de ${formatMoney(charge.amount)} (${charge.hours} h). La ${r.room?.number} pasó a limpieza.`
+          ? `Salida tardía: cargo sugerido de ${formatMoney(charge.amount)} (${charge.hours} h); cóbralo o condónalo en la cuenta. La ${r.room?.number} pasó a limpieza.`
           : `La habitación ${r.room?.number} pasó a limpieza.`,
       });
       onDone();
@@ -566,10 +596,56 @@ function CheckOutForm({
           <span className="text-muted-foreground">Salida programada</span>
           <span className="font-medium">{formatDayTime(r.checkOut)}</span>
         </div>
-        <div className="flex justify-between rounded-lg bg-muted/50 p-3">
-          <span className="text-muted-foreground">Total de la estancia</span>
-          <span className="font-semibold">{formatMoney(r.totalAmount)}</span>
+        <div
+          className={cn(
+            'flex items-center justify-between rounded-lg p-3',
+            balance > 0 ? 'bg-amber-500/10' : 'bg-emerald-500/10',
+          )}
+        >
+          <div>
+            <p className="text-muted-foreground">
+              {balance > 0
+                ? 'Saldo pendiente'
+                : balance < 0
+                  ? 'Saldo a favor'
+                  : 'Cuenta pagada'}
+            </p>
+            <p className="text-xl font-bold tabular-nums">
+              {folio ? formatCents(Math.abs(balance)) : '…'}
+            </p>
+          </div>
+          {balance > 0 && (
+            <Button size="sm" onClick={() => setPaying(true)}>
+              <Wallet />
+              Cobrar
+            </Button>
+          )}
         </div>
+        {suggested.length > 0 && (
+          <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            Hay {suggested.length} cargo(s) sugerido(s) sin resolver; no están
+            en el saldo. Puedes cobrarlos o condonarlos en la cuenta de la
+            reserva.
+          </p>
+        )}
+        {balance > 0 && (
+          <div className="space-y-1.5">
+            <Label htmlFor="balance-reason">
+              Motivo para salir con saldo (cuenta por cobrar)
+            </Label>
+            <Textarea
+              id="balance-reason"
+              rows={2}
+              maxLength={300}
+              value={balanceReason}
+              onChange={(e) => setBalanceReason(e.target.value)}
+              placeholder="Ej. la empresa paga por transferencia"
+            />
+            <p className="text-xs text-muted-foreground">
+              Requiere autorización con PIN si no puedes autorizar.
+            </p>
+          </div>
+        )}
         {late && (
           <p className="flex gap-2 rounded-lg bg-amber-500/10 p-3 text-amber-800 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -578,10 +654,13 @@ function CheckOutForm({
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          La habitación pasará automáticamente a limpieza. El cobro y el saldo
-          se manejarán en Cobros (Fase 7).
+          La habitación pasará automáticamente a limpieza.
         </p>
       </div>
+      {folio && (
+        <PaymentDialog folio={folio} open={paying} onOpenChange={setPaying} />
+      )}
+      {dialog}
       <DialogFooter>
         <Button variant="outline" onClick={onDone}>
           Cancelar

@@ -12,6 +12,7 @@ import {
   Loader2,
   Moon,
   Sun,
+  Wallet,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -52,6 +53,7 @@ import {
 import { TaxBreakdown } from '@/features/hotel/tax-breakdown';
 import { TimeZoneSelect } from '@/features/hotel/time-zone-select';
 import { SeasonsSettings } from '@/features/hotel/seasons-settings';
+import { BillingSettings } from '@/features/billing/components/billing-settings';
 import { RatesGrid } from '@/features/rooms/components/rates-grid';
 import { getErrorMessage } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
@@ -61,6 +63,7 @@ const TABS = [
   { id: 'hotel', label: 'Datos del hotel', icon: Building2 },
   { id: 'tarifas', label: 'Tarifas y horarios', icon: Calculator },
   { id: 'temporadas', label: 'Temporadas y días', icon: CalendarRange },
+  { id: 'cobros', label: 'Cobros', icon: Wallet },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
@@ -106,8 +109,10 @@ export function SettingsPage() {
         <div className="max-w-4xl">
           <RatesForm hotel={hotel} />
         </div>
-      ) : (
+      ) : tab === 'temporadas' ? (
         <SeasonsSettings hotel={hotel} />
+      ) : (
+        <BillingSettings hotel={hotel} />
       )}
     </div>
   );

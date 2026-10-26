@@ -88,7 +88,16 @@ export class UsersService {
     id: string,
     dto: UpdateUserDto,
   ): Promise<PublicUser> {
-    await this.findOne(actor, id);
+    const current = await this.findOne(actor, id);
+
+    // El personal de limpieza no cobra ni autoriza.
+    const finalRole = dto.role ?? current.role;
+    const housekeeping = finalRole === 'HOUSEKEEPING';
+    if (housekeeping && (dto.canAuthorize || dto.canDiscountUnlimited)) {
+      throw new BadRequestException(
+        'El personal de limpieza no puede tener permisos de cobro ni autorizar',
+      );
+    }
 
     // Evita que un administrador se quede sin acceso por error.
     if (id === actor.id) {
@@ -107,8 +116,17 @@ export class UsersService {
           name: dto.name,
           role: dto.role,
           isActive: dto.isActive,
-          canAuthorize: dto.canAuthorize,
-          canDiscountUnlimited: dto.canDiscountUnlimited,
+          // Al pasar a limpieza se le quitan los permisos de cobro y su PIN.
+          ...(housekeeping
+            ? {
+                canAuthorize: false,
+                canDiscountUnlimited: false,
+                authPinHash: null,
+              }
+            : {
+                canAuthorize: dto.canAuthorize,
+                canDiscountUnlimited: dto.canDiscountUnlimited,
+              }),
           phone: dto.phone,
           employeeNumber: dto.employeeNumber,
           hireDate: dto.hireDate ? toDbDate(dto.hireDate) : dto.hireDate,

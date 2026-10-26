@@ -56,6 +56,8 @@ export class AuthorizationService {
         hotelId,
         isActive: true,
         canAuthorize: true,
+        // Limpieza nunca autoriza, aunque el dato quedara mal.
+        role: { not: 'HOUSEKEEPING' },
       },
       select: { id: true, authPinHash: true },
     });
@@ -74,7 +76,12 @@ export class AuthorizationService {
   authorizers(hotelId: string) {
     return this.prisma.user
       .findMany({
-        where: { hotelId, isActive: true, canAuthorize: true },
+        where: {
+          hotelId,
+          isActive: true,
+          canAuthorize: true,
+          role: { not: 'HOUSEKEEPING' },
+        },
         select: { id: true, name: true, role: true, authPinHash: true },
         orderBy: { name: 'asc' },
       })

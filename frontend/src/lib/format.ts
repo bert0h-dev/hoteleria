@@ -132,3 +132,27 @@ export function dayParts(date: string) {
     isWeekend: d.getUTCDay() === 0 || d.getUTCDay() === 6,
   };
 }
+
+const centsFormat = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const usdFormat = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'USD',
+  currencyDisplay: 'code',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Centavos → "$1,234.56". */
+export function formatCents(cents: number): string {
+  return centsFormat.format(cents / 100);
+}
+
+/** Centavos de dólar → "USD 60.00". */
+export function formatUsdCents(cents: number): string {
+  return usdFormat.format(cents / 100);
+}

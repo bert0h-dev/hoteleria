@@ -43,7 +43,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { GuestBadges } from '@/features/guests/components/guest-badges';
 import { getErrorMessage } from '@/lib/api';
 import { Link } from 'react-router';
-import { formatDateTime, formatDayTime, formatMoney } from '@/lib/format';
+import { formatDateTime, formatDayTime } from '@/lib/format';
 import {
   useCancelReservation,
   useNoShow,
@@ -52,6 +52,8 @@ import {
 import { MODALITIES, SOURCES, unitLabel, type Reservation } from '../types';
 import { PriceSummary } from './price-summary';
 import { ReservationFormDialog } from './reservation-form-dialog';
+import { FolioPanel } from '@/features/billing/components/folio-panel';
+import { cn } from '@/lib/utils';
 import { ReservationStatusBadge } from './reservation-status-badge';
 import {
   CheckInDialog,
@@ -94,6 +96,7 @@ function Details({ reservation: r }: { reservation: Reservation }) {
     'check-in' | 'check-out' | 'extend' | 'move' | 'guests' | null
   >(null);
   const isInHouse = r.status === 'CHECKED_IN';
+  const [tab, setTab] = useState<'detail' | 'folio'>('detail');
   const noShow = useNoShow();
   const isConfirmed = r.status === 'CONFIRMED';
   // Se toma la hora al abrir el detalle (no en cada render).
@@ -256,105 +259,118 @@ function Details({ reservation: r }: { reservation: Reservation }) {
         </div>
       </DialogHeader>
 
-      <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1.2fr_1fr]">
-        <div className="space-y-5 p-6">
-          <div className="flex items-center gap-3 rounded-xl border p-3">
-            <UserAvatar name={guestName} />
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-2 font-medium">
-                {guestName}
-                <GuestBadges guest={r.guest} />
-              </p>
-              <p className="truncate text-sm text-muted-foreground">
-                {[r.guest.phone, r.guest.email].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          </div>
+      <nav className="flex shrink-0 gap-1 border-b px-6">
+        {(
+          [
+            { id: 'detail', label: 'Detalle' },
+            { id: 'folio', label: 'Cuenta' },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              '-mb-px border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
+              tab === t.id && 'border-primary text-foreground',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-          {r.status === 'CANCELLED' && (
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 text-sm">
-              <p className="font-medium text-rose-700 dark:text-rose-300">
-                Cancelada por {r.cancelledBy?.name} el{' '}
-                {r.cancelledAt && formatDateTime(r.cancelledAt)}
-              </p>
-              <p className="text-muted-foreground">{r.cancelReason}</p>
-            </div>
-          )}
-
-          <dl className="grid gap-3 sm:grid-cols-2">
-            {facts.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="rounded-lg border bg-muted/30 p-3">
-                <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Icon className="size-3.5" />
-                  {label}
-                </dt>
-                <dd className="mt-1 text-sm font-medium break-words">
-                  {value}
-                </dd>
+      {tab === 'folio' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
+          <FolioPanel reservationId={r.id} />
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-5 p-6">
+            <div className="flex items-center gap-3 rounded-xl border p-3">
+              <UserAvatar name={guestName} />
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-2 font-medium">
+                  {guestName}
+                  <GuestBadges guest={r.guest} />
+                </p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {[r.guest.phone, r.guest.email].filter(Boolean).join(' · ')}
+                </p>
               </div>
-            ))}
-          </dl>
-
-          {r.bookedRoomType && (
-            <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3 text-sm">
-              <p className="flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-300">
-                <ArrowUpCircle className="size-4" />
-                Mejora de categoría: {r.bookedRoomType.name} → {r.roomType.name}
-              </p>
-              <p className="text-muted-foreground">{r.upgradeReason}</p>
             </div>
-          )}
 
-          {r.charges.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Cargos adicionales
-              </p>
-              {r.charges.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
-                >
-                  <span>
-                    {c.description}
-                    {c.status === 'SUGGESTED' && (
-                      <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                        Sugerido · se cobra en Cobros
-                      </span>
-                    )}
-                  </span>
-                  <span className="font-semibold tabular-nums">
-                    {formatMoney(c.amount)}
-                  </span>
+            {r.status === 'CANCELLED' && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 text-sm">
+                <p className="font-medium text-rose-700 dark:text-rose-300">
+                  Cancelada por {r.cancelledBy?.name} el{' '}
+                  {r.cancelledAt && formatDateTime(r.cancelledAt)}
+                </p>
+                <p className="text-muted-foreground">{r.cancelReason}</p>
+              </div>
+            )}
+
+            <dl className="grid gap-3 sm:grid-cols-2">
+              {facts.map(({ icon: Icon, label, value }) => (
+                <div key={label} className="rounded-lg border bg-muted/30 p-3">
+                  <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Icon className="size-3.5" />
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium break-words">
+                    {value}
+                  </dd>
                 </div>
               ))}
-            </div>
-          )}
+            </dl>
 
-          {r.notes && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                <StickyNote className="size-3.5" />
-                Notas
-              </p>
-              <p className="mt-1 text-sm whitespace-pre-line">{r.notes}</p>
-            </div>
-          )}
-        </div>
+            {r.bookedRoomType && (
+              <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3 text-sm">
+                <p className="flex items-center gap-1.5 font-medium text-violet-700 dark:text-violet-300">
+                  <ArrowUpCircle className="size-4" />
+                  Mejora de categoría: {r.bookedRoomType.name} →{' '}
+                  {r.roomType.name}
+                </p>
+                <p className="text-muted-foreground">{r.upgradeReason}</p>
+              </div>
+            )}
 
-        <div className="border-t bg-muted/20 p-6 md:border-t-0 md:border-l">
-          <h3 className="mb-3 text-sm font-semibold">
-            Precio (congelado al reservar)
-          </h3>
-          <PriceSummary
-            modality={r.modality}
-            baseAmount={r.baseAmount}
-            extrasAmount={r.extrasAmount}
-            totalAmount={r.totalAmount}
-            detail={r.pricing}
-          />
+            {r.charges.some((c) => c.status === 'SUGGESTED') && (
+              <button
+                type="button"
+                onClick={() => setTab('folio')}
+                className="w-full rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-left text-sm hover:bg-amber-500/10"
+              >
+                Hay cargos sugeridos por cobrar o condonar · ver la cuenta →
+              </button>
+            )}
+
+            {r.notes && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                  <StickyNote className="size-3.5" />
+                  Notas
+                </p>
+                <p className="mt-1 text-sm whitespace-pre-line">{r.notes}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t bg-muted/20 p-6 md:border-t-0 md:border-l">
+            <h3 className="mb-3 text-sm font-semibold">
+              Precio (congelado al reservar)
+            </h3>
+            <PriceSummary
+              modality={r.modality}
+              baseAmount={r.baseAmount}
+              extrasAmount={r.extrasAmount}
+              totalAmount={r.totalAmount}
+              detail={r.pricing}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <ReservationFormDialog
         open={editing}
