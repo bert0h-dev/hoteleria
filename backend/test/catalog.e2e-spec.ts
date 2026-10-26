@@ -72,6 +72,8 @@ describe('Configuración y catálogo de habitaciones (e2e)', () => {
     await prisma.roomStatusLog.deleteMany({ where: { hotelId } });
     await prisma.room.deleteMany({ where: { hotelId } });
     await prisma.roomType.deleteMany({ where: { hotelId } });
+    await prisma.auditLog.deleteMany({ where: { hotelId } });
+    await prisma.cashShift.deleteMany({ where: { hotelId } });
     await prisma.user.deleteMany({ where: { hotelId } });
     await prisma.hotel.delete({ where: { id: hotelId } }); // borra settings en cascada
     await app.close();

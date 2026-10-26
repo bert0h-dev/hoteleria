@@ -23,7 +23,7 @@ export class HotelController {
   @Patch()
   @Roles(Role.ADMIN)
   update(@CurrentUser() actor: AuthUser, @Body() dto: UpdateHotelDto) {
-    return this.hotel.update(actor.hotelId, dto);
+    return this.hotel.update(actor, dto);
   }
 
   @Patch('settings')
@@ -32,6 +32,6 @@ export class HotelController {
     @CurrentUser() actor: AuthUser,
     @Body() dto: UpdateSettingsDto,
   ) {
-    return this.hotel.updateSettings(actor.hotelId, dto);
+    return this.hotel.updateSettings(actor, dto);
   }
 }

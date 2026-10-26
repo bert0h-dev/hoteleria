@@ -103,6 +103,8 @@ describe('Cobros: folio, descuentos, PIN, dólares y check-out (e2e)', () => {
     await prisma.guest.deleteMany({ where: { hotelId } });
     await prisma.chargeConcept.deleteMany({ where: { hotelId } });
     await prisma.exchangeRate.deleteMany({ where: { hotelId } });
+    await prisma.auditLog.deleteMany({ where: { hotelId } });
+    await prisma.cashShift.deleteMany({ where: { hotelId } });
     await prisma.user.deleteMany({ where: { hotelId } });
     await prisma.hotel.delete({ where: { id: hotelId } });
     await app.close();
@@ -237,6 +239,20 @@ describe('Cobros: folio, descuentos, PIN, dólares y check-out (e2e)', () => {
     expect(last).toMatchObject({ kind: 'DISCOUNT', amountCents: 20000 });
     expect(last.authorizedBy.name).toBe('Gerente');
     expect(ok.body.totals.balanceCents).toBe(267000);
+  });
+
+  it('sin turno de caja abierto no se puede cobrar', async () => {
+    const noShift = await as('recep')
+      .post(`/api/reservations/${resId}/payments`, {
+        method: 'CASH',
+        amount: 100,
+      })
+      .expect(409);
+    expect(noShift.body.message).toBe(
+      'Abre tu turno de caja para poder cobrar',
+    );
+    await as('recep').post('/api/cash-shifts', { openingMxn: 500 }).expect(201);
+    await as('admin').post('/api/cash-shifts', {}).expect(201);
   });
 
   it('anticipo en dólares con el tipo de cambio del día', async () => {
@@ -399,6 +415,30 @@ describe('Cobros: folio, descuentos, PIN, dólares y check-out (e2e)', () => {
       balanceReason: 'Paga mañana',
       balanceAuthorizedBy: { name: 'Gerente' },
     });
+
+    // Aparece en cuentas por cobrar y en la bitácora con quién autorizó.
+    const receivables = await as('recep').get('/api/receivables').expect(200);
+    expect(receivables.body).toEqual([
+      expect.objectContaining({ id, balanceCents: 120000 }),
+    ]);
+    await as('recep').get('/api/audit-logs').expect(403);
+    const audit = await as('admin')
+      .get(`/api/audit-logs?entity=reservation&entityId=${id}`)
+      .expect(200);
+    expect(audit.body.data[0]).toMatchObject({
+      action: 'reservation.checkout_balance',
+      actor: { name: 'Recepción' },
+      authorizedBy: { name: 'Gerente' },
+    });
+
+    // Al liquidarla deja de ser cuenta por cobrar.
+    await as('recep')
+      .post(`/api/reservations/${id}/payments`, {
+        method: 'TRANSFER',
+        amount: 1200,
+      })
+      .expect(201);
+    expect((await as('recep').get('/api/receivables')).body).toEqual([]);
   });
 
   it('confirma o condona cargos sugeridos (condonar cuenta para el tope)', async () => {

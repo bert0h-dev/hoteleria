@@ -56,6 +56,8 @@ describe('Huéspedes y datos fiscales (e2e)', () => {
 
   afterAll(async () => {
     await prisma.guest.deleteMany({ where: { hotelId } }); // perfiles en cascada
+    await prisma.auditLog.deleteMany({ where: { hotelId } });
+    await prisma.cashShift.deleteMany({ where: { hotelId } });
     await prisma.user.deleteMany({ where: { hotelId } });
     await prisma.hotel.delete({ where: { id: hotelId } });
     await app.close();

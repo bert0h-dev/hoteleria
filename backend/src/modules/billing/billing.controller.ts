@@ -80,6 +80,11 @@ export class BillingController {
 
   // --- Folio ---
 
+  @Get('receivables')
+  receivables(@CurrentUser() actor: AuthUser) {
+    return this.billing.receivables(actor);
+  }
+
   @Get('reservations/:id/folio')
   folio(@CurrentUser() actor: AuthUser, @Param('id', ParseUuid) id: string) {
     return this.billing.folio(actor, id);
