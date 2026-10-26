@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ShiftGate } from '@/features/cash/components/shift-gate';
 import { getErrorMessage } from '@/lib/api';
 import { formatCents, formatUsdCents } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -125,7 +126,12 @@ const parseMoney = (s: string) => {
 export function PaymentDialog({ folio, open, onOpenChange }: Base) {
   return (
     <Shell open={open} onOpenChange={onOpenChange}>
-      <PaymentForm folio={folio} onDone={() => onOpenChange(false)} />
+      <ShiftGate
+        onCancel={() => onOpenChange(false)}
+        content={
+          <PaymentForm folio={folio} onDone={() => onOpenChange(false)} />
+        }
+      />
     </Shell>
   );
 }
@@ -630,7 +636,12 @@ function WaiveForm({
 export function RefundDialog({ folio, open, onOpenChange }: Base) {
   return (
     <Shell open={open} onOpenChange={onOpenChange}>
-      <RefundForm folio={folio} onDone={() => onOpenChange(false)} />
+      <ShiftGate
+        onCancel={() => onOpenChange(false)}
+        content={
+          <RefundForm folio={folio} onDone={() => onOpenChange(false)} />
+        }
+      />
     </Shell>
   );
 }

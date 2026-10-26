@@ -6,6 +6,7 @@ import { useHotel } from '@/features/hotel/hotel-api';
 import { setHotelTimeZone } from '@/lib/format';
 import { ThemePicker } from '@/features/theme/theme-picker';
 import { ExchangeRateIndicator } from '@/features/billing/components/exchange-rate';
+import { ShiftIndicator } from '@/features/cash/components/shift-indicator';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -34,9 +35,9 @@ export function MainLayout() {
           <SidebarNav />
         </div>
         <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
-          <p className="text-sm font-medium">Fase 6 de 9</p>
+          <p className="text-sm font-medium">Fase 7 de 9</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Pronto: cobros, folios y reportes.
+            Pronto: tablero y reportes.
           </p>
         </div>
       </aside>
@@ -73,6 +74,7 @@ export function MainLayout() {
             <Logo />
           </div>
           <div className="ml-auto flex items-center gap-1">
+            <ShiftIndicator />
             <ExchangeRateIndicator />
             <ThemePicker />
             <UserMenu />
