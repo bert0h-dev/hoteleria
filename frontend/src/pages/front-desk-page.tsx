@@ -74,25 +74,25 @@ export function FrontDeskPage() {
       label: 'Llegadas pendientes',
       value: data?.arrivals.length,
       icon: LogIn,
-      tone: 'text-sky-600 bg-sky-500/10',
+      tone: 'text-sky-600 dark:text-sky-400 bg-sky-500/10',
     },
     {
       label: 'En casa',
       value: inHouse.length,
       icon: BedDouble,
-      tone: 'text-emerald-600 bg-emerald-500/10',
+      tone: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10',
     },
     {
       label: 'Salen hoy',
       value: departing.length,
       icon: LogOut,
-      tone: 'text-amber-600 bg-amber-500/10',
+      tone: 'text-amber-600 dark:text-amber-400 bg-amber-500/10',
     },
     {
       label: 'Salidas vencidas',
       value: overdue.length,
       icon: AlertTriangle,
-      tone: 'text-rose-600 bg-rose-500/10',
+      tone: 'text-rose-600 dark:text-rose-400 bg-rose-500/10',
     },
   ];
 
@@ -155,7 +155,7 @@ export function FrontDeskPage() {
                   <>
                     {r.roomType.name} · llega {formatDayTime(r.checkIn)}
                     {late && (
-                      <span className="font-medium text-amber-600">
+                      <span className="font-medium text-amber-600 dark:text-amber-400">
                         {' '}
                         · atrasada
                       </span>
@@ -199,13 +199,13 @@ export function FrontDeskPage() {
                     </span>
                   )}
                   {r.overdue && (
-                    <span className="font-medium text-rose-600">
+                    <span className="font-medium text-rose-600 dark:text-rose-400">
                       {' '}
                       · salida vencida
                     </span>
                   )}
                   {!r.overdue && r.departsToday && (
-                    <span className="font-medium text-amber-600">
+                    <span className="font-medium text-amber-600 dark:text-amber-400">
                       {' '}
                       · sale hoy
                     </span>

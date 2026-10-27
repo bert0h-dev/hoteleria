@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { Printer } from 'lucide-react';
+import { DocumentNotFound } from '@/components/document-not-found';
 import { FullScreenLoader } from '@/components/full-screen-loader';
 import { LogoMark } from '@/components/logo';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ export function ShiftReportPage() {
   const { data: hotel } = useHotel();
   const [printedAt] = useState(() => new Date().toISOString());
 
-  if (error) return <p className="p-10 text-center">Turno no encontrado.</p>;
+  if (error) return <DocumentNotFound message="Turno no encontrado" />;
   if (!shift || !hotel) return <FullScreenLoader />;
   setHotelTimeZone(hotel.timezone);
   const t = shift.totals;

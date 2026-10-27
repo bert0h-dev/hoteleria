@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { Printer } from 'lucide-react';
+import { DocumentNotFound } from '@/components/document-not-found';
 import { FullScreenLoader } from '@/components/full-screen-loader';
 import { LogoMark } from '@/components/logo';
 import { Button } from '@/components/ui/button';
@@ -19,14 +20,15 @@ import {
 /** Recibo de un pago (o devolución), para imprimir. */
 export function ReceiptPage() {
   const { id, paymentId } = useParams();
-  const { data: folio } = useFolio(id);
+  const { data: folio, error } = useFolio(id);
   const { data: hotel } = useHotel();
   const [printedAt] = useState(() => new Date().toISOString());
 
+  if (error) return <DocumentNotFound message="Recibo no encontrado" />;
   if (!folio || !hotel) return <FullScreenLoader />;
   setHotelTimeZone(hotel.timezone);
   const payment = folio.payments.find((p) => p.id === paymentId);
-  if (!payment) return <p className="p-10 text-center">Pago no encontrado.</p>;
+  if (!payment) return <DocumentNotFound message="Pago no encontrado" />;
 
   const taxes = calculateTaxBreakdown(
     payment.amountMxnCents / 100,

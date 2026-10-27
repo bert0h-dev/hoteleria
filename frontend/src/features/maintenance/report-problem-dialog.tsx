@@ -107,7 +107,7 @@ function ProblemForm({
   return (
     <>
       <DialogHeader>
-        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-sky-500/15 text-sky-600">
+        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400">
           <Wrench className="size-5" />
         </div>
         <DialogTitle>

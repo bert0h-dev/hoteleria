@@ -113,7 +113,7 @@ function RateForm({
   return (
     <>
       <DialogHeader>
-        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600">
+        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
           <DollarSign className="size-5" />
         </div>
         <DialogTitle>Tipo de cambio de hoy</DialogTitle>

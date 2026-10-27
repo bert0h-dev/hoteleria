@@ -114,14 +114,14 @@ export function HomePage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat
             icon={LogIn}
-            tone="text-sky-600 bg-sky-500/10"
+            tone="text-sky-600 dark:text-sky-400 bg-sky-500/10"
             label="Llegadas pendientes"
             value={String(data.frontDesk.arrivals)}
             to="/recepcion"
           />
           <Stat
             icon={LogOut}
-            tone="text-amber-600 bg-amber-500/10"
+            tone="text-amber-600 dark:text-amber-400 bg-amber-500/10"
             label="Salidas de hoy"
             value={String(data.frontDesk.departures)}
             hint={
@@ -133,14 +133,14 @@ export function HomePage() {
           />
           <Stat
             icon={Wallet}
-            tone="text-emerald-600 bg-emerald-500/10"
+            tone="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
             label="Cobrado hoy"
             value={formatCents(data.money.collectedTodayCents)}
             to={hasRole('ADMIN') ? '/caja/cortes' : '/caja'}
           />
           <Stat
             icon={HandCoins}
-            tone="text-rose-600 bg-rose-500/10"
+            tone="text-rose-600 dark:text-rose-400 bg-rose-500/10"
             label="Por cobrar"
             value={formatCents(data.money.receivablesCents)}
             hint={`${data.money.receivablesCount} cuenta(s)`}
@@ -295,14 +295,14 @@ function RoomsCard({ data, wide }: { data: Dashboard; wide: boolean }) {
           ))}
         </ul>
         {rooms.overdueBlocks > 0 && (
-          <p className="text-xs font-medium text-amber-600">
+          <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
             {rooms.overdueBlocks} bloqueo(s) con fecha de fin vencida
           </p>
         )}
 
         <div className="space-y-2 border-t pt-4">
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Sparkles className="size-4 text-amber-600" />
+            <Sparkles className="size-4 text-amber-600 dark:text-amber-400" />
             Por limpiar ({rooms.toClean.length})
           </p>
           {rooms.toClean.length === 0 ? (

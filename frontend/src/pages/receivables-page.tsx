@@ -21,7 +21,7 @@ export function ReceivablesPage() {
       />
 
       <Card className="flex-row items-center gap-4 p-5">
-        <span className="grid size-11 place-items-center rounded-xl bg-amber-500/15 text-amber-600">
+        <span className="grid size-11 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
           <HandCoins className="size-5" />
         </span>
         <div>

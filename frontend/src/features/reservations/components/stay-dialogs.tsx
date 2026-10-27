@@ -142,7 +142,7 @@ function CheckInForm({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-6 text-center">
-          <div className="grid size-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600">
+          <div className="grid size-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <DoorOpen className="size-8" />
           </div>
           <p className="text-4xl font-bold tabular-nums">{done.room?.number}</p>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { Printer } from 'lucide-react';
+import { DocumentNotFound } from '@/components/document-not-found';
 import { FullScreenLoader } from '@/components/full-screen-loader';
 import { LogoMark } from '@/components/logo';
 import { Button } from '@/components/ui/button';
@@ -25,12 +26,14 @@ import {
  */
 export function RegistrationCardPage() {
   const { id } = useParams();
-  const { data: reservation } = useReservation(id ?? null);
+  const { data: reservation, error } = useReservation(id ?? null);
   const { data: hotel } = useHotel();
-  const { data: guest } = useGuest(reservation?.guestId);
+  const { data: guest, error: guestError } = useGuest(reservation?.guestId);
   // Momento en que se abrió la tarjeta (no en cada render).
   const [generatedAt] = useState(() => new Date().toISOString());
 
+  if (error || guestError)
+    return <DocumentNotFound message="Reservación no encontrada" />;
   if (!reservation || !hotel || !guest) return <FullScreenLoader />;
   // Fechas y horas en la zona del hotel (esta página no usa el layout).
   setHotelTimeZone(hotel.timezone);
