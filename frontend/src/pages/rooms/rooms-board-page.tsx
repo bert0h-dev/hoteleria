@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, BedDouble, Plus, Search, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  BedDouble,
+  Grid3x3,
+  LayoutGrid,
+  Plus,
+  Search,
+  X,
+} from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth/auth-context';
 import { RoomCard } from '@/features/rooms/components/room-card';
+import { RoomMap } from '@/features/rooms/components/room-map';
 import { RoomFormDialog } from '@/features/rooms/components/room-form-dialog';
 import { RoomDetailsDialog } from '@/features/rooms/components/room-details-dialog';
 import { ROOM_STATUS, ROOM_STATUSES } from '@/features/rooms/room-status';
@@ -26,6 +35,18 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { cn } from '@/lib/utils';
 
 const ALL = 'all';
+const VIEW_KEY = 'rooms-board-view';
+
+type View = 'cards' | 'map';
+
+// La vista elegida se recuerda por navegador; si no hay storage, tarjetas.
+function readView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'map' ? 'map' : 'cards';
+  } catch {
+    return 'cards';
+  }
+}
 
 export function RoomsBoardPage() {
   const { hasRole } = useAuth();
@@ -36,6 +57,7 @@ export function RoomsBoardPage() {
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [view, setView] = useState<View>(readView);
   const debouncedSearch = useDebouncedValue(search.trim());
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -69,6 +91,15 @@ export function RoomsBoardPage() {
   ];
   const hasFilters = !!status || typeId !== ALL || !!search || overdueOnly;
   const overdueCount = summary.data?.overdue ?? 0;
+
+  const changeView = (v: View) => {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // Sin storage: la vista solo dura esta sesión.
+    }
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -228,6 +259,30 @@ export function RoomsBoardPage() {
             Limpiar filtros
           </Button>
         )}
+        <div
+          role="group"
+          aria-label="Vista del tablero"
+          className="flex rounded-lg border p-0.5 sm:ml-auto"
+        >
+          {(
+            [
+              { value: 'cards', label: 'Tarjetas', icon: LayoutGrid },
+              { value: 'map', label: 'Mapa', icon: Grid3x3 },
+            ] as const
+          ).map(({ value, label, icon: Icon }) => (
+            <Button
+              key={value}
+              variant={view === value ? 'secondary' : 'ghost'}
+              size="sm"
+              className="flex-1"
+              aria-pressed={view === value}
+              onClick={() => changeView(value)}
+            >
+              <Icon />
+              {label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Tablero por piso */}
@@ -269,15 +324,22 @@ export function RoomsBoardPage() {
               </span>
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-              {floorRooms.map((room) => (
-                <RoomCard
-                  key={room.id}
-                  room={room}
-                  onClick={() => setSelectedId(room.id)}
-                />
-              ))}
-            </div>
+            {view === 'map' ? (
+              <RoomMap
+                rooms={floorRooms}
+                onOpenDetails={(room) => setSelectedId(room.id)}
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                {floorRooms.map((room) => (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    onClick={() => setSelectedId(room.id)}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         ))}
       </div>
