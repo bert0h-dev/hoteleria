@@ -204,6 +204,9 @@ function TaskCard({
   const [reporting, setReporting] = useState(false);
   const inProgress = t.status === 'IN_PROGRESS';
   const mineOrFree = !t.assignedTo || t.assignedTo.id === user?.id;
+  // El spinner va solo en el botón que se presionó.
+  const pending = (kind: 'take' | 'start' | 'finish') =>
+    action.isPending && action.variables?.action === kind;
 
   const run = async (kind: 'take' | 'start' | 'finish') => {
     try {
@@ -255,39 +258,40 @@ function TaskCard({
 
       {manager && <AssignSelect task={t} />}
 
-      <div className="flex gap-2">
+      {/* En celular los botones bajan de renglón en vez de apretarse. */}
+      <div className="flex flex-wrap gap-2">
         {!manager && !t.assignedTo && !inProgress && (
           <Button
             variant="outline"
-            className="h-11 flex-1"
+            className="h-11 min-w-28 flex-1"
             onClick={() => run('take')}
             disabled={action.isPending}
           >
-            <Hand />
+            {pending('take') ? <Loader2 className="animate-spin" /> : <Hand />}
             Tomar
           </Button>
         )}
         {(manager || mineOrFree) && !inProgress && (
           <Button
             variant={manager ? 'outline' : 'default'}
-            className={cn('flex-1', !manager && 'h-11')}
+            className={cn('min-w-28 flex-1', !manager && 'h-11')}
             onClick={() => run('start')}
             disabled={action.isPending}
           >
-            <Play />
+            {pending('start') ? <Loader2 className="animate-spin" /> : <Play />}
             Empezar
           </Button>
         )}
         {(manager || mineOrFree) && (
           <Button
             className={cn(
-              'flex-1 bg-emerald-600 text-white hover:bg-emerald-600/90',
+              'min-w-28 flex-1 bg-emerald-600 text-white hover:bg-emerald-600/90',
               !manager && 'h-11',
             )}
             onClick={() => run('finish')}
             disabled={action.isPending}
           >
-            {action.isPending ? (
+            {pending('finish') ? (
               <Loader2 className="animate-spin" />
             ) : (
               <Check />
