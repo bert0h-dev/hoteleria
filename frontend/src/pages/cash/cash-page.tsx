@@ -68,7 +68,7 @@ export function CashPage() {
 
       {!isLoading && !shift && (
         <Card className="items-center gap-4 py-12 text-center">
-          <div className="grid size-14 place-items-center rounded-2xl bg-amber-500/15 text-amber-600">
+          <div className="grid size-14 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <Wallet className="size-7" />
           </div>
           <div className="space-y-1">
@@ -147,7 +147,8 @@ export function CashPage() {
                     <span
                       className={cn(
                         'font-medium tabular-nums',
-                        p.kind === 'REFUND' && 'text-rose-600',
+                        p.kind === 'REFUND' &&
+                          'text-rose-600 dark:text-rose-400',
                       )}
                     >
                       {p.kind === 'REFUND' ? '−' : ''}

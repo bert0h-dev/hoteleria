@@ -173,13 +173,20 @@ function Difference({ shift: s }: { shift: CashShift }) {
   const mxn = (s.countedMxnCents ?? 0) - s.expectedMxnCents;
   const usd = (s.countedUsdCents ?? 0) - (s.expectedUsdCents ?? 0);
   if (mxn === 0 && usd === 0) {
-    return <span className="text-emerald-600">Cuadra</span>;
+    return (
+      <span className="text-emerald-600 dark:text-emerald-400">Cuadra</span>
+    );
   }
   return (
     <span className="space-y-0.5 tabular-nums">
       {mxn !== 0 && (
         <span
-          className={cn('block', mxn < 0 ? 'text-rose-600' : 'text-amber-600')}
+          className={cn(
+            'block',
+            mxn < 0
+              ? 'text-rose-600 dark:text-rose-400'
+              : 'text-amber-600 dark:text-amber-400',
+          )}
         >
           {mxn > 0 ? '+' : '−'}
           {formatCents(Math.abs(mxn))}
@@ -187,7 +194,12 @@ function Difference({ shift: s }: { shift: CashShift }) {
       )}
       {usd !== 0 && (
         <span
-          className={cn('block', usd < 0 ? 'text-rose-600' : 'text-amber-600')}
+          className={cn(
+            'block',
+            usd < 0
+              ? 'text-rose-600 dark:text-rose-400'
+              : 'text-amber-600 dark:text-amber-400',
+          )}
         >
           {usd > 0 ? '+' : '−'}
           {formatUsdCents(Math.abs(usd))}

@@ -135,7 +135,7 @@ export function CleaningPage() {
               key={t.id}
               className="flex-row items-center gap-3 p-3 opacity-80"
             >
-              <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 font-bold text-emerald-700 tabular-nums dark:text-emerald-300">
+              <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 font-bold text-emerald-700 dark:text-emerald-300 tabular-nums dark:text-emerald-300">
                 {t.room.number}
               </span>
               <span className="flex-1 text-sm">
@@ -147,7 +147,7 @@ export function CleaningPage() {
                     ` · ${minutes(t.startedAt, t.finishedAt)} min`}
                 </span>
               </span>
-              <Check className="size-4 text-emerald-600" />
+              <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
             </Card>
           ))}
         </Section>
@@ -461,7 +461,7 @@ function StayoverForm({ onDone }: { onDone: () => void }) {
   return (
     <>
       <DialogHeader>
-        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-violet-500/15 text-violet-600">
+        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400">
           <Sparkles className="size-5" />
         </div>
         <DialogTitle>Pedir repaso</DialogTitle>

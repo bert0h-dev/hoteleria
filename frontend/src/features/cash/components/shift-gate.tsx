@@ -33,7 +33,7 @@ export function ShiftGate({
   return (
     <>
       <DialogHeader>
-        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-amber-500/15 text-amber-600">
+        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
           <Wallet className="size-5" />
         </div>
         <DialogTitle>Tu caja está cerrada</DialogTitle>

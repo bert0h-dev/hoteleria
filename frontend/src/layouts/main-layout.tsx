@@ -35,9 +35,11 @@ export function MainLayout() {
           <SidebarNav />
         </div>
         <div className="m-3 rounded-xl border border-sidebar-border bg-linear-to-br from-brand-from/12 to-brand-to/5 p-4">
-          <p className="text-sm font-medium">Fase 9 de 9</p>
+          <p className="truncate text-sm font-medium">
+            {hotel?.name ?? 'Mi hotel'}
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Sistema completo. Siguiente: CFDI.
+            Sistema de gestión hotelera
           </p>
         </div>
       </aside>

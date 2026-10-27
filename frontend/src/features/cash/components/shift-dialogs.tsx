@@ -98,7 +98,7 @@ export function OpenShiftForm({ onDone }: { onDone: () => void }) {
   return (
     <>
       <DialogHeader>
-        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600">
+        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
           <Wallet className="size-5" />
         </div>
         <DialogTitle>Abrir turno de caja</DialogTitle>
@@ -295,9 +295,9 @@ function Expected({
         <p
           className={cn(
             'font-medium',
-            diff === 0 && 'text-emerald-600',
-            diff < 0 && 'text-rose-600',
-            diff > 0 && 'text-amber-600',
+            diff === 0 && 'text-emerald-600 dark:text-emerald-400',
+            diff < 0 && 'text-rose-600 dark:text-rose-400',
+            diff > 0 && 'text-amber-600 dark:text-amber-400',
           )}
         >
           {diff === 0

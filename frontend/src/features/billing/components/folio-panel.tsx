@@ -313,7 +313,7 @@ function FolioView({ folio }: { folio: Folio }) {
                 <span
                   className={cn(
                     'font-semibold tabular-nums',
-                    p.kind === 'REFUND' && 'text-rose-600',
+                    p.kind === 'REFUND' && 'text-rose-600 dark:text-rose-400',
                   )}
                 >
                   {p.kind === 'REFUND' ? '−' : ''}
@@ -419,7 +419,7 @@ function Line({
       <span
         className={cn(
           'text-sm font-medium tabular-nums',
-          amount < 0 && 'text-emerald-600',
+          amount < 0 && 'text-emerald-600 dark:text-emerald-400',
           voided && 'line-through',
         )}
       >

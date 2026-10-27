@@ -62,11 +62,13 @@ export function PinCard() {
           Con él autorizas descuentos sobre el tope, condonaciones y salidas con
           saldo pendiente.{' '}
           {me?.hasAuthPin ? (
-            <span className="inline-flex items-center gap-1 font-medium text-emerald-600">
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
               <Check className="size-3.5" /> Ya tienes PIN.
             </span>
           ) : (
-            <b className="text-amber-600">Aún no lo configuras.</b>
+            <b className="text-amber-600 dark:text-amber-400">
+              Aún no lo configuras.
+            </b>
           )}
         </CardDescription>
       </CardHeader>
