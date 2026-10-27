@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/page-header';
 import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/stat-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestBadges } from '@/features/guests/components/guest-badges';
 import { ReservationDetailsDialog } from '@/features/reservations/components/reservation-details-dialog';
@@ -113,27 +114,13 @@ export function FrontDeskPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, tone }) => (
-          <Card key={label} className="gap-0 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{label}</span>
-              <span
-                className={cn(
-                  'grid size-8 place-items-center rounded-lg',
-                  tone,
-                )}
-              >
-                <Icon className="size-4" />
-              </span>
-            </div>
-            {isLoading ? (
-              <Skeleton className="mt-2 h-8 w-10" />
-            ) : (
-              <p className="mt-1 text-3xl font-semibold tabular-nums">
-                {value ?? 0}
-              </p>
-            )}
-          </Card>
+        {stats.map((s) => (
+          <StatCard
+            key={s.label}
+            {...s}
+            value={s.value ?? 0}
+            loading={isLoading}
+          />
         ))}
       </div>
 

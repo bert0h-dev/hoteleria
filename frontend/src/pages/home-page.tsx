@@ -23,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { StatCard } from '@/components/stat-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth/auth-context';
 import { ROLES } from '@/features/auth/roles';
@@ -112,14 +113,14 @@ export function HomePage() {
 
       {data?.frontDesk && data.money && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat
+          <StatCard
             icon={LogIn}
             tone="text-sky-600 dark:text-sky-400 bg-sky-500/10"
             label="Llegadas pendientes"
             value={String(data.frontDesk.arrivals)}
             to="/recepcion"
           />
-          <Stat
+          <StatCard
             icon={LogOut}
             tone="text-amber-600 dark:text-amber-400 bg-amber-500/10"
             label="Salidas de hoy"
@@ -131,14 +132,14 @@ export function HomePage() {
             }
             to="/recepcion"
           />
-          <Stat
+          <StatCard
             icon={Wallet}
             tone="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
             label="Cobrado hoy"
             value={formatCents(data.money.collectedTodayCents)}
             to={hasRole('ADMIN') ? '/caja/cortes' : '/caja'}
           />
-          <Stat
+          <StatCard
             icon={HandCoins}
             tone="text-rose-600 dark:text-rose-400 bg-rose-500/10"
             label="Por cobrar"
@@ -170,39 +171,6 @@ export function HomePage() {
         </div>
       )}
     </div>
-  );
-}
-
-function Stat({
-  icon: Icon,
-  tone,
-  label,
-  value,
-  hint,
-  to,
-}: {
-  icon: LucideIcon;
-  tone: string;
-  label: string;
-  value: string;
-  hint?: string;
-  to: string;
-}) {
-  return (
-    <Link to={to} className="group">
-      <Card className="gap-0 p-4 transition-colors group-hover:border-primary/40">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{label}</span>
-          <span
-            className={cn('grid size-8 place-items-center rounded-lg', tone)}
-          >
-            <Icon className="size-4" />
-          </span>
-        </div>
-        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-        <p className="h-4 text-xs text-muted-foreground">{hint}</p>
-      </Card>
-    </Link>
   );
 }
 
