@@ -38,11 +38,11 @@ const RANGES = [7, 14, 30] as const;
 function heat(day: CalendarDay) {
   if (day.sellable === 0) return 'bg-muted text-muted-foreground';
   if (day.available === 0)
-    return 'bg-rose-500/15 text-rose-700 dark:text-rose-300 ring-rose-500/30 dark:text-rose-300';
+    return 'bg-rose-500/15 text-rose-700 ring-rose-500/30 dark:text-rose-300';
   const ratio = day.available / day.sellable;
   if (ratio <= 0.34)
-    return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/30 dark:text-amber-300';
-  return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25 dark:text-emerald-300';
+    return 'bg-amber-500/15 text-amber-700 ring-amber-500/30 dark:text-amber-300';
+  return 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300';
 }
 
 export function ReservationsCalendarPage() {

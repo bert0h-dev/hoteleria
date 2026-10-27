@@ -86,7 +86,7 @@ export function ReceivablesPage() {
                 <td className="px-4 py-3">
                   {r.balanceAuthorizedBy?.name ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-300 tabular-nums dark:text-amber-300">
+                <td className="px-4 py-3 text-right font-semibold text-amber-700 tabular-nums dark:text-amber-300">
                   {formatCents(r.balanceCents)}
                 </td>
               </tr>

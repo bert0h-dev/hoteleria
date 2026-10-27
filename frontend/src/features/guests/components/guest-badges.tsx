@@ -13,7 +13,7 @@ export function GuestBadges({
   return (
     <span className={cn('inline-flex gap-1', className)}>
       {guest.isVip && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30 ring-inset dark:text-amber-300">
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-500/30 ring-inset dark:text-amber-300">
           <Crown className="size-3" />
           VIP
         </span>

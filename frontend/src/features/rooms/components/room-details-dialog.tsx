@@ -150,7 +150,7 @@ function RoomDetails({
 
           {room.currentStay && (
             <div className="space-y-2 rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
-              <p className="text-xs font-semibold tracking-wider text-rose-700 dark:text-rose-300 uppercase dark:text-rose-300">
+              <p className="text-xs font-semibold tracking-wider text-rose-700 uppercase dark:text-rose-300">
                 Huésped en casa
               </p>
               <p className="font-medium">

@@ -135,7 +135,7 @@ export function CleaningPage() {
               key={t.id}
               className="flex-row items-center gap-3 p-3 opacity-80"
             >
-              <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 font-bold text-emerald-700 dark:text-emerald-300 tabular-nums dark:text-emerald-300">
+              <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 font-bold text-emerald-700 tabular-nums dark:text-emerald-300">
                 {t.room.number}
               </span>
               <span className="flex-1 text-sm">
